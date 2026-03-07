@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Attendance System - Teacher Portal</title>
+
+<style>
+
+body{
+font-family:Arial, sans-serif;
+background:#f4f6fa;
+margin:0;
+}
+
+header{
+background:#4a6cf7;
+color:white;
+padding:20px;
+font-size:24px;
+}
+
+.container{
+width:95%;
+margin:auto;
+margin-top:20px;
+}
+
+.tabs{
+margin-bottom:20px;
+}
+
+.tab-btn{
+padding:10px 20px;
+border:none;
+background:#545454;
+margin-right:5px;
+cursor:pointer;
+border-radius:4px 4px 0 0;
+}
+
+.tab-btn.active{
+background:#4a6cf7;
+color:white;
+}
+
+.tab{
+display:none;
+background:white;
+padding:20px;
+border-radius:5px;
+}
+
+.tab.active{
+display:block;
+}
+
+input,textarea{
+width:100%;
+padding:10px;
+margin-top:5px;
+margin-bottom:15px;
+border:1px solid #ccc;
+border-radius:4px;
+box-sizing:border-box;
+}
+
+button{
+padding:10px 20px;
+background:#4a6cf7;
+color:white;
+border:none;
+cursor:pointer;
+border-radius:4px;
+}
+
+button:hover{
+background:#3a56d8;
+}
+
+/* Delete button style */
+.btn-delete{
+padding:5px 12px;
+background:#e74c3c;
+color:white;
+border:none;
+cursor:pointer;
+border-radius:4px;
+font-size:13px;
+}
+
+.btn-delete:hover{
+background:#c0392b;
+}
+
+/* View attendance button */
+.btn-view{
+padding:5px 12px;
+background:#27ae60;
+color:white;
+border:none;
+cursor:pointer;
+border-radius:4px;
+font-size:13px;
+margin-right:5px;
+}
+
+.btn-view:hover{
+background:#219150;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:10px;
+vertical-align:middle;
+}
+
+th{
+background:#f2f2f2;
+}
+
+.message{
+padding:10px;
+margin-top:10px;
+border-radius:4px;
+}
+
+.success{background:#d4edda;color:#155724;}
+.error{background:#f8d7da;color:#721c24;}
+.info{background:#d1ecf1;color:#0c5460;}
+
+/* Spinner overlay */
+#loadingOverlay{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.35);
+z-index:9999;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+color:white;
+font-size:18px;
+}
+
+#loadingOverlay.show{
+display:flex;
+}
+
+.spinner{
+width:50px;height:50px;
+border:6px solid #ffffff44;
+border-top-color:#fff;
+border-radius:50%;
+animation:spin 0.8s linear infinite;
+margin-bottom:15px;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Attendance sub-table */
+.att-sub{
+margin-top:8px;
+background:#f9f9f9;
+}
+
+/* Dashboard stat cards */
+.stat-card{
+background:#4a6cf7;
+color:white;
+padding:20px 30px;
+border-radius:8px;
+cursor:pointer;
+min-width:150px;
+text-align:center;
+transition:background 0.2s;
+user-select:none;
+}
+
+.stat-card:hover{
+background:#3a56d8;
+}
+
+.stat-num{
+font-size:36px;
+font-weight:bold;
+line-height:1;
+}
+
+.stat-label{
+font-size:14px;
+margin-top:6px;
+opacity:0.9;
+}
+
+.stat-hint{
+font-size:11px;
+margin-top:4px;
+opacity:0.7;
+}
+
+/* Dashboard sessions preview table */
+#dashboardSessions table{
+width:100%;
+border-collapse:collapse;
+margin-top:8px;
+}
+
+#dashboardSessions th,
+#dashboardSessions td{
+border:1px solid #ccc;
+padding:8px 10px;
+}
+
+#dashboardSessions th{
+background:#f2f2f2;
+}
+
+#dashboardSessions .btn-goto{
+padding:4px 10px;
+background:#4a6cf7;
+color:white;
+border:none;
+cursor:pointer;
+border-radius:4px;
+font-size:12px;
+}
+
+#dashboardSessions .btn-goto:hover{
+background:#3a56d8;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- Loading overlay shown while emails are sending -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingMsg">Sending emails to students, please wait…</span>
+</div>
+
+<header>
+  Smart Attendance System - Teacher Portal
+</header>
+
+<div class="container">
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="openTab('dashboard',this)">Dashboard</button>
+  <button class="tab-btn" onclick="openTab('createSession',this)">Create Session</button>
+  <button class="tab-btn" onclick="openTab('registerStudents',this)">Register Students</button>
+  <button class="tab-btn" onclick="openTab('viewStudents',this); loadStudents()">All Students</button>
+  <button class="tab-btn" onclick="openTab('sessions',this); loadSessions()">Sessions</button>
+  <button class="tab-btn" onclick="openTab('searchAttendance',this)">Search Attendance</button>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="dashboard" class="tab active">
+<h3>Statistics</h3>
+  <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:25px">
+
+    <div class="stat-card" onclick="switchTab('viewStudents'); loadStudents()">
+      <div class="stat-num" id="statStudents">0</div>
+      <div class="stat-label">Total Students</div>
+      <div class="stat-hint">Click to view all</div>
+    </div>
+
+    <div class="stat-card" onclick="switchTab('sessions'); loadSessions()">
+      <div class="stat-num" id="statSessions">0</div>
+      <div class="stat-label">Total Sessions</div>
+      <div class="stat-hint">Click to view all</div>
+    </div>
+
+    <div class="stat-card" onclick="switchTab('searchAttendance')">
+      <div class="stat-num" id="statAttendance">0</div>
+      <div class="stat-label">Total Attendance</div>
+      <div class="stat-hint">Click to view all</div>
+    </div>
+
+  </div>
+
+  <h3>Recent Sessions</h3>
+  <div id="dashboardSessions">Loading...</div>
+</div>
+
+<!-- ==================== CREATE SESSION ==================== -->
+<div id="createSession" class="tab">
+  <h3>Create Session</h3>
+
+  <form id="sessionForm">
+    Teacher Name   <input type="text" id="teacher"  required>
+    Session Name   <input type="text" id="session"  required>
+    Date           <input type="date" id="sessdate" required>
+    Start Time (HH:MM) <input type="text" id="start" placeholder="10:00" required>
+    End Time   (HH:MM) <input type="text" id="end"   placeholder="11:00" required>
+    <button type="submit">Create Session &amp; Send Emails</button>
+  </form>
+
+  <div id="sessionMessage"></div>
+</div>
+
+<!-- ==================== REGISTER STUDENTS ==================== -->
+<div id="registerStudents" class="tab">
+  <h3>Add Student</h3>
+
+  <form id="manualStudentForm">
+    PRN   <input type="text"  id="manualPrn"   required>
+    Name  <input type="text"  id="manualName"  required>
+    Email <input type="email" id="manualEmail" required>
+    <button type="submit">Add Student</button>
+  </form>
+
+  <div id="manualMessage"></div>
+
+  <h3>Upload CSV</h3>
+  <input type="file" id="csvFile" accept=".csv">
+  <button onclick="uploadCSV()">Upload CSV</button>
+  <div id="csvMessage"></div>
+</div>
+
+<!-- ==================== ALL STUDENTS ==================== -->
+<div id="viewStudents" class="tab">
+  <h3>All Students</h3>
+  <button onclick="loadStudents()">Refresh</button>
+  <div id="studentsTable"></div>
+</div>
+
+<!-- ==================== SESSIONS ==================== -->
+<div id="sessions" class="tab">
+  <h3>All Sessions</h3>
+  <button onclick="loadSessions()">Refresh</button>
+  <div id="sessionsList"></div>
+</div>
+
+<!-- ==================== SEARCH ATTENDANCE ==================== -->
+<div id="searchAttendance" class="tab">
+  <h3>Search Attendance by PRN</h3>
+  <input type="text" id="searchPrn" placeholder="Enter PRN">
+  <button onclick="searchAttendance()">Search</button>
+  <div id="attendanceResults"></div>
+</div>
+
+</div><!-- end .container -->
+
+<script>
+
+/* ===================== TAB SWITCH ===================== */
+
+function openTab(tabId, btn){
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+  document.getElementById(tabId).classList.add("active")
+  btn.classList.add("active")
+}
+
+/* Switch tab programmatically (from dashboard card clicks) */
+function switchTab(tabId){
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+  document.getElementById(tabId).classList.add("active")
+  /* highlight the matching tab button */
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    if(b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${tabId}'`))
+      b.classList.add("active")
+  })
+}
+
+
+/* ===================== TIME HELPERS ===================== */
+
+function timeToMinutes(time){
+  let p = time.split(":")
+  return parseInt(p[0]) * 60 + parseInt(p[1])
+}
+
+
+/* ===================== LOADING OVERLAY ===================== */
+
+function showLoading(msg){
+  document.getElementById("loadingMsg").innerText = msg || "Please wait…"
+  document.getElementById("loadingOverlay").classList.add("show")
+}
+
+function hideLoading(){
+  document.getElementById("loadingOverlay").classList.remove("show")
+}
+
+
+/* ===================== SHOW MESSAGE ===================== */
+
+function showMessage(id, msg, success){
+  let el = document.getElementById(id)
+  el.className = "message " + (success ? "success" : "error")
+  el.innerText = msg || (success ? "Done." : "Something went wrong.")
+}
+
+
+/* ===================== CREATE SESSION + SEND EMAILS ===================== */
+
+document.getElementById("sessionForm").onsubmit = async function(e){
+  e.preventDefault()
+
+  let teacher  = document.getElementById("teacher").value.trim()
+  let session  = document.getElementById("session").value.trim()
+  let sessdate = document.getElementById("sessdate").value   // YYYY-MM-DD
+  let start    = timeToMinutes(document.getElementById("start").value)
+  let end      = timeToMinutes(document.getElementById("end").value)
+
+  if(end <= start){
+    showMessage("sessionMessage","End time must be after start time.", false)
+    return
+  }
+
+  if(!sessdate){
+    showMessage("sessionMessage","Please select a date.", false)
+    return
+  }
+
+  /* 1. Create session */
+  let data = `teacher=${encodeURIComponent(teacher)}&session=${encodeURIComponent(session)}&start=${start}&end=${end}&date=${encodeURIComponent(sessdate)}`
+
+  let r   = await fetch("/api/create_session",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
+  let res = await r.json()
+
+  if(!res.success){
+    showMessage("sessionMessage", res.message, false)
+    return
+  }
+
+  let session_id = res.session_id
+  showMessage("sessionMessage", `Session #${session_id} created. Sending emails…`, true)
+
+  /* 2. Trigger email sending (runs send_emails.py via server) */
+  showLoading(`Sending emails for session #${session_id}…`)
+
+  try{
+    let er   = await fetch(`/api/send_session_emails?session_id=${session_id}`)
+    let eres = await er.json()
+    hideLoading()
+    showMessage("sessionMessage",
+      `Session #${session_id} created. ${eres.message || "Emails sent."}`,
+      eres.success)
+  } catch(err){
+    hideLoading()
+    showMessage("sessionMessage",
+      `Session #${session_id} created. Email sending failed: ${err.message}`, false)
+  }
+
+  loadDashboard()
+}
+
+
+/* ===================== REGISTER STUDENT ===================== */
+
+document.getElementById("manualStudentForm").onsubmit = async function(e){
+  e.preventDefault()
+
+  let prn   = document.getElementById("manualPrn").value.trim()
+  let name  = document.getElementById("manualName").value.trim()
+  let email = document.getElementById("manualEmail").value.trim()
+
+  let data = `prn=${encodeURIComponent(prn)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
+
+  let r   = await fetch("/api/register_student_manual",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
+  let res = await r.json()
+
+  showMessage("manualMessage", res.message, res.success)
+  if(res.success) document.getElementById("manualStudentForm").reset()
+}
+
+
+/* ===================== CSV UPLOAD ===================== */
+
+async function uploadCSV(){
+  let file = document.getElementById("csvFile").files[0]
+  if(!file){ showMessage("csvMessage","Please select a CSV file.", false); return }
+
+  let text = await file.text()
+  let data = `csv=${encodeURIComponent(text)}`
+
+  let r   = await fetch("/api/register_students",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
+  let res = await r.json()
+
+  showMessage("csvMessage", res.message, res.success)
+}
+
+
+/* ===================== LOAD STUDENTS ===================== */
+
+async function loadStudents(){
+  let r        = await fetch("/api/get_all_students")
+  let students = await r.json()
+
+  if(students.length === 0){
+    document.getElementById("studentsTable").innerHTML = "<p>No students registered.</p>"
+    return
+  }
+
+  let html = `<table>
+    <tr><th>PRN</th><th>Name</th><th>Email</th><th>Action</th></tr>`
+
+  students.forEach(s => {
+    html += `<tr>
+      <td>${escHtml(s.prn)}</td>
+      <td>${escHtml(s.name)}</td>
+      <td>${escHtml(s.email)}</td>
+      <td>
+        <button class="btn-delete" onclick="deleteStudent('${escHtml(s.prn)}')">
+          🗑 Delete
+        </button>
+      </td>
+    </tr>`
+  })
+
+  html += "</table>"
+  document.getElementById("studentsTable").innerHTML = html
+}
+
+
+/* ===================== DELETE STUDENT ===================== */
+
+async function deleteStudent(prn){
+  if(!confirm(`Delete student ${prn}? This will also remove their attendance records.`)) return
+
+  let r   = await fetch("/api/delete_student",{
+    method:"POST",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body:`prn=${encodeURIComponent(prn)}`
+  })
+  let res = await r.json()
+
+  alert(res.message)
+  loadStudents()
+  loadDashboard()
+}
+
+
+/* ===================== LOAD SESSIONS ===================== */
+
+async function loadSessions(){
+  let container = document.getElementById("sessionsList")
+  container.innerHTML = "<p>Loading…</p>"
+
+  let sessions
+  try{
+    let r = await fetch("/api/get_sessions")
+    let text = await r.text()
+    console.log("get_sessions raw response:", text)
+
+    sessions = JSON.parse(text)
+  } catch(err){
+    container.innerHTML = `<p class="message error">Failed to load sessions: ${err.message}</p>`
+    return
+  }
+
+  if(!Array.isArray(sessions) || sessions.length === 0){
+    container.innerHTML = "<p>No sessions found.</p>"
+    return
+  }
+
+  let html = `<table>
+    <tr>
+      <th>ID</th><th>Session</th><th>Teacher</th>
+      <th>Date</th><th>Start</th><th>End</th><th>Actions</th>
+    </tr>`
+
+  sessions.forEach(s => {
+    let dateDisplay = s.date && s.date !== "null" && s.date !== "0000-00-00"
+      ? escHtml(s.date)
+      : "<i style='color:#aaa'>—</i>"
+
+    html += `<tr>
+      <td>${s.id}</td>
+      <td>${escHtml(s.session)}</td>
+      <td>${escHtml(s.teacher)}</td>
+      <td>${dateDisplay}</td>
+      <td>${escHtml(s.start)}</td>
+      <td>${escHtml(s.end)}</td>
+      <td>
+        <button class="btn-view" onclick="toggleAttendance(${s.id}, this)">
+          &#128065; View Attendance
+        </button>
+        <button class="btn-delete" onclick="deleteAttendance(${s.id})">
+          &#128465; Clear Attendance
+        </button>
+        <button class="btn-delete" style="margin-top:4px" onclick="deleteSession(${s.id})">
+          &#10006; Delete Session
+        </button>
+      </td>
+    </tr>
+    <tr id="att_row_${s.id}" style="display:none">
+      <td colspan="7">
+        <div id="att_${s.id}">Loading…</div>
+      </td>
+    </tr>`
+  })
+
+  html += "</table>"
+  container.innerHTML = html
+}
+
+
+/* ===================== TOGGLE SESSION ATTENDANCE ===================== */
+
+async function toggleAttendance(id, btn){
+  let row = document.getElementById("att_row_" + id)
+
+  if(row.style.display === "none"){
+    row.style.display = ""
+    btn.innerText = "▲ Hide Attendance"
+    await viewAttendance(id)
+  } else {
+    row.style.display = "none"
+    btn.innerText = "👁 View Attendance"
+  }
+}
+
+async function viewAttendance(id){
+  let r    = await fetch(`/api/session_attendance?session_id=${id}`)
+  let data = await r.json()
+
+  if(data.length === 0){
+    document.getElementById("att_"+id).innerHTML = "<i>No attendance records yet.</i>"
+    return
+  }
+
+  let html = `<table class="att-sub">
+    <tr><th>PRN</th><th>Name</th><th>Marked At</th><th>Device IP</th></tr>`
+
+  data.forEach(a => {
+    html += `<tr>
+      <td>${escHtml(a.prn)}</td>
+      <td>${escHtml(a.name)}</td>
+      <td>${escHtml(a.marked_at)}</td>
+      <td>${escHtml(a.device_ip)}</td>
+    </tr>`
+  })
+
+  html += "</table>"
+  document.getElementById("att_"+id).innerHTML = html
+}
+
+
+/* ===================== DELETE ATTENDANCE (for a session) ===================== */
+
+async function deleteAttendance(session_id){
+  if(!confirm(`Clear ALL attendance records for session #${session_id}?`)) return
+
+  let r   = await fetch("/api/delete_attendance",{
+    method:"POST",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body:`session_id=${session_id}`
+  })
+  let res = await r.json()
+
+  alert(res.message)
+  loadSessions()
+  loadDashboard()
+}
+
+
+/* ===================== DELETE SESSION ===================== */
+
+async function deleteSession(session_id){
+  if(!confirm(`Delete session #${session_id} AND all its attendance records?`)) return
+
+  let r   = await fetch("/api/delete_session",{
+    method:"POST",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body:`session_id=${session_id}`
+  })
+  let res = await r.json()
+
+  alert(res.message)
+  loadSessions()
+  loadDashboard()
+}
+
+
+/* ===================== SEARCH ATTENDANCE ===================== */
+
+async function searchAttendance(){
+  let prn = document.getElementById("searchPrn").value.trim()
+  if(!prn){ alert("Please enter a PRN."); return }
+
+  let r    = await fetch(`/api/search_attendance?prn=${encodeURIComponent(prn)}`)
+  let data = await r.json()
+
+  if(data.length === 0){
+    document.getElementById("attendanceResults").innerHTML =
+      "<p class='message info'>No attendance records found for this PRN.</p>"
+    return
+  }
+
+  let html = `<table>
+    <tr><th>Session</th><th>Teacher</th><th>Marked At</th></tr>`
+
+  data.forEach(a => {
+    html += `<tr>
+      <td>${escHtml(a.session_name)}</td>
+      <td>${escHtml(a.teacher_name)}</td>
+      <td>${escHtml(a.marked_at)}</td>
+    </tr>`
+  })
+
+  html += "</table>"
+  document.getElementById("attendanceResults").innerHTML = html
+}
+
+
+/* ===================== DASHBOARD ===================== */
+
+async function loadDashboard(){
+  try{
+    let r = await fetch("/api/dashboard_stats")
+    let s = await r.json()
+    document.getElementById("statStudents").innerText   = s.total_students
+    document.getElementById("statSessions").innerText   = s.total_sessions
+    document.getElementById("statAttendance").innerText = s.total_attendance
+  } catch(e){
+    console.error("Dashboard stats error:", e)
+  }
+
+  /* Also populate the sessions preview on the dashboard */
+  await loadDashboardSessions()
+}
+
+async function loadDashboardSessions(){
+  let container = document.getElementById("dashboardSessions")
+
+  let sessions
+  try{
+    let r    = await fetch("/api/get_sessions")
+    let text = await r.text()
+    sessions = JSON.parse(text)
+  } catch(err){
+    container.innerHTML = `<p class="message error">Could not load sessions: ${err.message}</p>`
+    return
+  }
+
+  if(!Array.isArray(sessions) || sessions.length === 0){
+    container.innerHTML = "<p style='color:#888'>No sessions created yet.</p>"
+    return
+  }
+
+  let html = `<table>
+    <tr>
+      <th>ID</th><th>Session Name</th><th>Teacher</th>
+      <th>Date</th><th>Start</th><th>End</th><th></th>
+    </tr>`
+
+  sessions.forEach(s => {
+    let dateDisplay = s.date && s.date !== "null" && s.date !== "0000-00-00"
+      ? escHtml(s.date) : "<i style='color:#aaa'>—</i>"
+
+    html += `<tr>
+      <td>${s.id}</td>
+      <td>${escHtml(s.session)}</td>
+      <td>${escHtml(s.teacher)}</td>
+      <td>${dateDisplay}</td>
+      <td>${escHtml(s.start)}</td>
+      <td>${escHtml(s.end)}</td>
+      <td>
+        <button class="btn-goto"
+          onclick="switchTab('sessions'); loadSessions()">
+          Open &rarr;
+        </button>
+      </td>
+    </tr>`
+  })
+
+  html += "</table>"
+  container.innerHTML = html
+}
+
+async function getServerIp(){
+  let r = await fetch("/api/get_server_ip")
+  let d = await r.json()
+  document.getElementById("serverIp").innerText =
+    `http://${d.ip}:8080/student?session_id=<SESSION_ID>`
+}
+
+
+/* ===================== XSS PROTECTION ===================== */
+
+function escHtml(str){
+  if(str === null || str === undefined) return ""
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+}
+
+
+/* ===================== INIT ===================== */
+
+window.onload = function(){
+  loadDashboard()       /* loads stats + sessions preview */
+  getServerIp()
+  loadSessions()        /* pre-load sessions tab so it's ready instantly */
+  /* Default session date to today */
+  const today = new Date().toISOString().split("T")[0]
+  document.getElementById("sessdate").value = today
+}
+
+</script>
+</body>
+</html>

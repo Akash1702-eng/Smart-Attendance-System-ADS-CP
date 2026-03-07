@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Attendance Portal</title>
+
+<style>
+
+/* ── Base – matches teacher.html exactly ─────────────────────────── */
+body{
+  font-family: Arial, sans-serif;
+  background: #f4f6fa;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header{
+  background: #4a6cf7;
+  color: white;
+  padding: 20px;
+  font-size: 24px;
+}
+
+/* ── Page layout ──────────────────────────────────────────────────── */
+.page-body{
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 30px 16px;
+}
+
+/* ── Card – same white card style as teacher tabs ─────────────────── */
+.card{
+  background: white;
+  border-radius: 5px;
+  padding: 28px 30px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+h2{
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #222;
+}
+
+/* ── Session info box ─────────────────────────────────────────────── */
+.session-box{
+  background: #eef7ff;
+  border-left: 4px solid #4a6cf7;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.session-box b{
+  color: #4a6cf7;
+}
+
+/* ── Warning notice ───────────────────────────────────────────────── */
+.instructions{
+  font-size: 13px;
+  background: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── Form labels ──────────────────────────────────────────────────── */
+label{
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+/* ── Inputs – identical to teacher.html ──────────────────────────── */
+input[type="text"]{
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus{
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74,108,247,0.12);
+}
+
+input[type="text"]:disabled{
+  background: #f4f6fa;
+  color: #aaa;
+}
+
+/* ── Primary button – identical to teacher.html ──────────────────── */
+button{
+  width: 100%;
+  padding: 10px 20px;
+  background: #4a6cf7;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 15px;
+  font-family: Arial, sans-serif;
+  transition: background 0.15s;
+}
+
+button:hover:not(:disabled){
+  background: #3a56d8;
+}
+
+button:disabled{
+  background: #a0aee8;
+  cursor: not-allowed;
+}
+
+/* ── Messages – identical to teacher.html ────────────────────────── */
+.message{
+  padding: 10px;
+  margin-top: 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.success{ background: #d4edda; color: #155724; }
+.error  { background: #f8d7da; color: #721c24; }
+.info   { background: #d1ecf1; color: #0c5460; }
+
+/* ── Divider ──────────────────────────────────────────────────────── */
+hr{
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 22px 0;
+}
+
+/* ── Submitted state banner ───────────────────────────────────────── */
+.submitted-banner{
+  display: none;
+  text-align: center;
+  padding: 20px 0 8px;
+}
+
+.submitted-banner .checkmark{
+  width: 56px;
+  height: 56px;
+  background: #d4edda;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 26px;
+}
+
+.submitted-banner p{
+  color: #155724;
+  font-size: 15px;
+  margin: 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>Smart Attendance System</header>
+
+<div class="page-body">
+<div class="card">
+
+  <h2>Mark Attendance</h2>
+
+  <!-- Session info -->
+  <div class="session-box">
+    Session ID: <b id="displaySession">Loading...</b>
+  </div>
+
+  <!-- WiFi reminder -->
+  <div class="instructions">
+    &#9888; Please ensure you are connected to the classroom WiFi before marking attendance.
+  </div>
+
+  <!-- Form -->
+  <form id="attendanceForm" autocomplete="off">
+
+    <label for="prn">Student PRN</label>
+    <input type="text" id="prn" required placeholder="Enter your PRN">
+
+    <label for="name">Full Name</label>
+    <input type="text" id="name" required placeholder="Enter your full name">
+
+    <input type="hidden" id="sessionId">
+
+    <button type="submit" id="submitBtn">Mark Attendance</button>
+
+  </form>
+
+  <!-- Result message -->
+  <div id="message"></div>
+
+  <!-- Success state (shown after successful submission) -->
+  <div class="submitted-banner" id="successBanner">
+    <hr>
+    <div class="checkmark">&#10003;</div>
+    <p>Your attendance has been recorded.<br>You may close this page.</p>
+  </div>
+
+</div>
+</div>
+
+<script>
+
+/* ── Get session_id from URL ─────────────────────────────────────── */
+function getSessionId(){
+  let params  = new URLSearchParams(window.location.search)
+  let session = params.get("session_id")
+
+  if(!session){
+    document.getElementById("displaySession").innerText = "Invalid Session"
+    document.getElementById("submitBtn").disabled = true
+    showMessage("No session ID in the link. Please use the link sent to your email.", false)
+    return
+  }
+
+  document.getElementById("sessionId").value       = session
+  document.getElementById("displaySession").innerText = session
+}
+
+
+/* ── Submit attendance ───────────────────────────────────────────── */
+document.getElementById("attendanceForm").onsubmit = async function(e){
+  e.preventDefault()
+
+  let prn     = document.getElementById("prn").value.trim()
+  let name    = document.getElementById("name").value.trim()
+  let session = document.getElementById("sessionId").value
+
+  if(!session){
+    showMessage("Invalid session link.", false)
+    return
+  }
+
+  let btn = document.getElementById("submitBtn")
+  btn.disabled   = true
+  btn.innerText  = "Submitting..."
+
+  let data = `prn=${encodeURIComponent(prn)}&name=${encodeURIComponent(name)}&session_id=${session}`
+
+  try{
+    let r   = await fetch("/api/mark_attendance",{
+      method:  "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body:    data
+    })
+
+    let res = await r.json()
+
+    showMessage(res.message, res.success)
+
+    if(res.success){
+      /* Disable the form so they can't resubmit */
+      document.getElementById("prn").disabled  = true
+      document.getElementById("name").disabled = true
+      btn.style.display = "none"
+      document.getElementById("successBanner").style.display = "block"
+    } else {
+      btn.disabled  = false
+      btn.innerText = "Mark Attendance"
+    }
+
+  } catch(err){
+    showMessage("Network error. Please check your WiFi connection and try again.", false)
+    btn.disabled  = false
+    btn.innerText = "Mark Attendance"
+  }
+}
+
+
+/* ── Show message ────────────────────────────────────────────────── */
+function showMessage(msg, success){
+  let div       = document.getElementById("message")
+  div.className = "message " + (success ? "success" : "error")
+  div.innerText = msg || ""
+}
+
+
+/* ── Init ────────────────────────────────────────────────────────── */
+window.onload = function(){
+  getSessionId()
+}
+
+</script>
+</body>
+</html>
