@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Smart Attendance System
-WiFi QR Generator + Email Sender
-Sends attendance link with teacher IPv4 address
-"""
-
 import sys
 import io
 
-# ── Force UTF-8 stdout/stderr so Unicode chars don't crash on Windows cp1252 ──
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
@@ -25,19 +18,11 @@ import platform
 import re
 import socket
 
-# ================================
-# EMAIL CONFIGURATION
-# ================================
-
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 SENDER_EMAIL = "attendance.system.project.vit@gmail.com"
 SENDER_PASSWORD = "yenwaxckqbyfbgmo"
-
-# ================================
-# DATABASE CONFIG
-# ================================
 
 DB_CONFIG = {
     "host": "localhost",
@@ -45,10 +30,6 @@ DB_CONFIG = {
     "password": "12345",
     "database": "attendance_db"
 }
-
-# ================================
-# GET TEACHER IPV4 ADDRESS
-# ================================
 
 def get_local_ip():
     try:
@@ -62,17 +43,10 @@ def get_local_ip():
         print("[WARN] Could not detect IPv4. Using localhost.")
         return "localhost"
 
-
-# ================================
-# WIFI DETECTION
-# ================================
-
 def get_wifi_details():
-
     try:
         system = platform.system()
 
-        # WINDOWS
         if system == "Windows":
 
             result = subprocess.run(
@@ -103,7 +77,6 @@ def get_wifi_details():
                     password = pass_match.group(1).strip()
                     return ssid, password
 
-        # LINUX
         elif system == "Linux":
 
             result = subprocess.run(
@@ -124,7 +97,6 @@ def get_wifi_details():
 
                     return ssid, pass_result.stdout.strip()
 
-        # MAC
         elif system == "Darwin":
 
             result = subprocess.run(
@@ -155,11 +127,6 @@ def get_wifi_details():
     print("[WARN] Using fallback WiFi credentials")
     return "Attendance_WiFi", "Attendance@123"
 
-
-# ================================
-# GENERATE WIFI QR
-# ================================
-
 def generate_wifi_qr(ssid, password, session_id):
 
     wifi_string = f"WIFI:S:{ssid};T:WPA;P:{password};;"
@@ -181,11 +148,6 @@ def generate_wifi_qr(ssid, password, session_id):
 
     print(f"[OK] QR generated: {filename}")
     return filename
-
-
-# ================================
-# SEND EMAIL
-# ================================
 
 def send_email_to_student(
         student_email,
@@ -268,11 +230,6 @@ def send_email_to_student(
         print(f"[FAIL] {student_email} : {e}")
         return False
 
-
-# ================================
-# MAIN
-# ================================
-
 def main(session_id):
 
     print("")
@@ -344,14 +301,8 @@ def main(session_id):
     cursor.close()
     conn.close()
 
-    # Exit with error code if any email failed so C server can detect it
     if success < len(students):
         sys.exit(1)
-
-
-# ================================
-# RUN
-# ================================
 
 if __name__ == "__main__":
 

@@ -4,44 +4,44 @@ D:/mingw64/x86_64-w64-mingw32/include/winsock2.h:15:2: warning: #warning Please 
       |  ^~~~~~~
 attendance_system.c:9: warning: ignoring '#pragma comment ' [-Wunknown-pragmas]
     9 | #pragma comment(lib,"ws2_32.lib")
-attendance_system.c:328:12: warning: 'time_to_minutes' defined but not used [-Wunused-function]
-  328 | static int time_to_minutes(const char *t)
+attendance_system.c:265:12: warning: 'time_to_minutes' defined but not used [-Wunused-function]
+  265 | static int time_to_minutes(const char *t)
       |            ^~~~~~~~~~~~~~~
 attendance_system.c: In function 'api_register_student':
-attendance_system.c:514:9: warning: '%s' directive writing up to 199 bytes into a region of size between 19 and 516 [-Wformat-overflow=]
-  514 |         "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
+attendance_system.c:432:9: warning: '%s' directive writing up to 199 bytes into a region of size between 19 and 516 [-Wformat-overflow=]
+  432 |         "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
       |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  515 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
-  516 |         safe_prn, safe_name, safe_email, safe_name, safe_email);
+  433 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+  434 |         safe_prn, safe_name, safe_email, safe_name, safe_email);
       |                                          ~~~~~~~~~
-attendance_system.c:515:41: note: format string is defined here
-  515 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+attendance_system.c:433:41: note: format string is defined here
+  433 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
       |                                         ^~
-attendance_system.c:513:5: note: 'sprintf' output between 95 and 990 bytes into a destination of size 600
-  513 |     sprintf(query,
+attendance_system.c:431:5: note: 'sprintf' output between 95 and 990 bytes into a destination of size 600
+  431 |     sprintf(query,
       |     ^~~~~~~~~~~~~~
-  514 |         "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
+  432 |         "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
       |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  515 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+  433 |         " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
       |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  516 |         safe_prn, safe_name, safe_email, safe_name, safe_email);
+  434 |         safe_prn, safe_name, safe_email, safe_name, safe_email);
       |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 attendance_system.c: In function 'api_register_students_csv':
-attendance_system.c:576:13: warning: '%s' directive writing up to 199 bytes into a region of size between 19 and 516 [-Wformat-overflow=]
-  576 |             "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
+attendance_system.c:494:13: warning: '%s' directive writing up to 199 bytes into a region of size between 19 and 516 [-Wformat-overflow=]
+  494 |             "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
       |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  577 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
-  578 |             safe_prn, safe_name, safe_email, safe_name, safe_email);
+  495 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+  496 |             safe_prn, safe_name, safe_email, safe_name, safe_email);
       |                                              ~~~~~~~~~
-attendance_system.c:577:45: note: format string is defined here
-  577 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+attendance_system.c:495:45: note: format string is defined here
+  495 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
       |                                             ^~
-attendance_system.c:575:9: note: 'sprintf' output between 95 and 990 bytes into a destination of size 600
-  575 |         sprintf(query,
+attendance_system.c:493:9: note: 'sprintf' output between 95 and 990 bytes into a destination of size 600
+  493 |         sprintf(query,
       |         ^~~~~~~~~~~~~~
-  576 |             "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
+  494 |             "INSERT INTO students(prn,name,email) VALUES('%s','%s','%s')"
       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  577 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
+  495 |             " ON DUPLICATE KEY UPDATE name='%s',email='%s'",
       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  578 |             safe_prn, safe_name, safe_email, safe_name, safe_email);
+  496 |             safe_prn, safe_name, safe_email, safe_name, safe_email);
       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -14,46 +14,19 @@
 
 MYSQL *conn;
 
-/* ================================================================
-   INTERVAL TREE
-   ================================================================
-
-   Each node stores one session's time window [start, end] on a
-   particular date, plus the session's database id and name so we
-   can report the conflicting session back to the teacher.
-
-   The tree is an augmented BST (standard interval-tree algorithm):
-     - keyed on interval.start
-     - each node caches the maximum end-value in its subtree (max_end)
-
-   Overlap query:  O(log n) average,  O(n) worst-case (all overlap)
-   Insert:         O(log n)
-   All other paths in the server are unchanged.
-
-   The tree is rebuilt from the database:
-     - once at startup  (load_interval_tree)
-     - after every successful CREATE SESSION  (it_insert)
-     - after every DELETE SESSION            (rebuild_interval_tree)
-     - after every DELETE ATTENDANCE         (no change – tree unchanged)
-================================================================ */
-
 typedef struct ITNode {
-    int  start;          /* session start  (minutes since midnight) */
-    int  end;            /* session end    (minutes since midnight) */
-    int  max_end;        /* max end in this subtree                 */
-    int  session_id;     /* DB primary key                          */
-    char date[12];       /* "YYYY-MM-DD"                            */
-    char name[101];      /* session_name for conflict messages      */
-    int  height;         /* for AVL balancing                       */
+    int  start;
+    int  end;
+    int  max_end;
+    int  session_id;
+    char date[12];
+    char name[101];
+    int  height;
     struct ITNode *left;
     struct ITNode *right;
 } ITNode;
 
-/* One tree root per date is overkill for a small system;
-   we store all dates in one tree and filter by date in the query. */
 static ITNode *it_root = NULL;
-
-/* ---- helpers -------------------------------------------------- */
 
 static int it_height(ITNode *n)
 {
@@ -83,7 +56,6 @@ static int it_balance_factor(ITNode *n)
     return n ? it_height(n->left) - it_height(n->right) : 0;
 }
 
-/* AVL right rotation */
 static ITNode *it_rotate_right(ITNode *y)
 {
     ITNode *x  = y->left;
@@ -95,7 +67,6 @@ static ITNode *it_rotate_right(ITNode *y)
     return x;
 }
 
-/* AVL left rotation */
 static ITNode *it_rotate_left(ITNode *x)
 {
     ITNode *y  = x->right;
@@ -107,28 +78,23 @@ static ITNode *it_rotate_left(ITNode *x)
     return y;
 }
 
-/* Rebalance after insert */
 static ITNode *it_rebalance(ITNode *n)
 {
     it_update(n);
     int bf = it_balance_factor(n);
 
-    /* Left-Left */
     if (bf > 1 && it_balance_factor(n->left) >= 0)
         return it_rotate_right(n);
 
-    /* Left-Right */
     if (bf > 1 && it_balance_factor(n->left) < 0)
     {
         n->left = it_rotate_left(n->left);
         return it_rotate_right(n);
     }
 
-    /* Right-Right */
     if (bf < -1 && it_balance_factor(n->right) <= 0)
         return it_rotate_left(n);
 
-    /* Right-Left */
     if (bf < -1 && it_balance_factor(n->right) > 0)
     {
         n->right = it_rotate_right(n->right);
@@ -138,7 +104,6 @@ static ITNode *it_rebalance(ITNode *n)
     return n;
 }
 
-/* Allocate a new node */
 static ITNode *it_new_node(int start, int end, int session_id,
                            const char *date, const char *name)
 {
@@ -157,14 +122,12 @@ static ITNode *it_new_node(int start, int end, int session_id,
     return n;
 }
 
-/* Insert a session interval into the AVL interval tree */
 static ITNode *it_insert(ITNode *node, int start, int end,
                          int session_id, const char *date, const char *name)
 {
     if (!node)
         return it_new_node(start, end, session_id, date, name);
 
-    /* BST insert keyed on start time */
     if (start < node->start)
         node->left  = it_insert(node->left,  start, end, session_id, date, name);
     else
@@ -173,32 +136,16 @@ static ITNode *it_insert(ITNode *node, int start, int end,
     return it_rebalance(node);
 }
 
-/* ---- overlap query -------------------------------------------- */
-
-/*
- * it_find_overlap:
- *   Returns the first node whose [start, end] overlaps [new_start, new_end]
- *   on the given date.
- *
- *   Two intervals [a,b] and [c,d] overlap iff  a < d  AND  c < b.
- *
- *   The max_end augmentation lets us prune the right subtree:
- *   if the left subtree's max_end <= new_start, nothing in it can overlap.
- */
 static ITNode *it_find_overlap(ITNode *node, int new_start, int new_end,
                                const char *date)
 {
     if (!node) return NULL;
 
-    /* Prune: if the maximum end in this subtree <= new_start,
-       no interval here can overlap. */
     if (node->max_end <= new_start) return NULL;
 
-    /* Check left subtree first (standard interval-tree traversal) */
     ITNode *found = it_find_overlap(node->left, new_start, new_end, date);
     if (found) return found;
 
-    /* Check this node: same date AND windows overlap */
     if (strcmp(node->date, date) == 0 &&
         node->start < new_end &&
         new_start   < node->end)
@@ -206,11 +153,8 @@ static ITNode *it_find_overlap(ITNode *node, int new_start, int new_end,
         return node;
     }
 
-    /* Check right subtree */
     return it_find_overlap(node->right, new_start, new_end, date);
 }
-
-/* ---- tree memory management ----------------------------------- */
 
 static void it_free(ITNode *node)
 {
@@ -219,8 +163,6 @@ static void it_free(ITNode *node)
     it_free(node->right);
     free(node);
 }
-
-/* ---- load from DB at startup ---------------------------------- */
 
 static void load_interval_tree()
 {
@@ -260,15 +202,10 @@ static void load_interval_tree()
     printf("[ITREE] Loaded %d session(s) into interval tree\n", count);
 }
 
-/* Rebuild the entire tree (used after a session is deleted) */
 static void rebuild_interval_tree()
 {
     load_interval_tree();
 }
-
-/* ================================================================
-   UTILITY
-   ================================================================ */
 
 static void url_decode(char *dst, const char *src, size_t max)
 {
@@ -337,10 +274,6 @@ static void minutes_to_time(int mins, char *out)
     sprintf(out, "%02d:%02d", mins / 60, mins % 60);
 }
 
-/* ================================================================
-   SEND RESPONSE
-   ================================================================ */
-
 static void send_response(SOCKET client, const char *type, const char *body)
 {
     char header[512];
@@ -368,10 +301,6 @@ static void send_404(SOCKET client)
     send(client, resp, (int)strlen(resp), 0);
 }
 
-/* ================================================================
-   READ FILE
-   ================================================================ */
-
 static void read_file(const char *filename, char *buffer)
 {
     FILE *f = fopen(filename, "rb");
@@ -384,10 +313,6 @@ static void read_file(const char *filename, char *buffer)
     buffer[n] = '\0';
     fclose(f);
 }
-
-/* ================================================================
-   DATABASE INIT
-   ================================================================ */
 
 void init_database()
 {
@@ -417,7 +342,6 @@ void init_database()
         "wifi_ssid     VARCHAR(100),"
         "wifi_password VARCHAR(100))");
 
-    /* Safely add session_date to pre-existing tables (MySQL 5.x compatible) */
     {
         MYSQL_RES *col_res = NULL;
         if (mysql_query(conn,
@@ -453,7 +377,6 @@ void init_database()
         "UNIQUE KEY unique_prn_session    (prn,       session_id),"
         "UNIQUE KEY unique_device_session (device_ip, session_id))");
 
-    /* Safely add device_ip to pre-existing tables */
     {
         MYSQL_RES *col_res = NULL;
         if (mysql_query(conn,
@@ -484,13 +407,8 @@ void init_database()
         }
     }
 
-    /* Build the in-memory interval tree from existing sessions */
     load_interval_tree();
 }
-
-/* ================================================================
-   API – STUDENTS
-   ================================================================ */
 
 static void api_register_student(SOCKET client, char *body)
 {
@@ -634,18 +552,6 @@ static void api_get_students(SOCKET client)
     free(json);
 }
 
-/* ================================================================
-   API – SESSIONS
-   ================================================================ */
-
-/*
- * POST /api/create_session
- * body: teacher=..&session=..&start=NNN&end=NNN&date=YYYY-MM-DD
- *
- * OVERLAP CHECK – uses the in-memory AVL interval tree instead of
- * a MySQL query.  Everything else (DB insert, response format) is
- * identical to the original implementation.
- */
 static void api_create_session(SOCKET client, char *body)
 {
     char raw_teacher[100]={0}, raw_session[100]={0}, raw_date[20]={0};
@@ -672,7 +578,6 @@ static void api_create_session(SOCKET client, char *body)
         return;
     }
 
-    /* Determine session date */
     char session_date[20] = {0};
     char decoded_date[20] = {0};
     url_decode(decoded_date, raw_date, sizeof(decoded_date));
@@ -697,12 +602,6 @@ static void api_create_session(SOCKET client, char *body)
     printf("[create_session] date=%s start=%d end=%d\n",
            session_date, start, end);
 
-    /* ---- Overlap check via interval tree (O(log n)) ----------------
-     *
-     * it_find_overlap walks the AVL tree and returns the first node
-     * whose [start, end] overlaps [start, end] on the same date.
-     * No MySQL round-trip is needed.
-     * ---------------------------------------------------------------- */
     ITNode *conflict = it_find_overlap(it_root, start, end, session_date);
 
     if (conflict)
@@ -722,7 +621,6 @@ static void api_create_session(SOCKET client, char *body)
         return;
     }
 
-    /* ---- No conflict – insert into DB -------------------------------- */
     char query[700];
     sprintf(query,
         "INSERT INTO sessions"
@@ -739,8 +637,6 @@ static void api_create_session(SOCKET client, char *body)
 
     int new_id = (int)mysql_insert_id(conn);
 
-    /* Insert the new session into the live interval tree so subsequent
-       requests in the same server run see it immediately. */
     it_root = it_insert(it_root, start, end, new_id, session_date, sess);
 
     printf("[ITREE] Inserted session id=%d [%d,%d] on %s\n",
@@ -809,10 +705,6 @@ static void api_get_sessions(SOCKET client)
     free(json);
 }
 
-/* ================================================================
-   API – ATTENDANCE
-   ================================================================ */
-
 static void api_mark_attendance(SOCKET client, char *body,
                                 const char *client_ip)
 {
@@ -878,7 +770,6 @@ static void api_mark_attendance(SOCKET client, char *body,
         return;
     }
 
-    /* Device check */
     db_escape(safe_ip, client_ip, sizeof(safe_ip));
 
     char dev_q[256];
@@ -1066,10 +957,6 @@ static void api_search_attendance(SOCKET client, const char *query_str)
     free(json);
 }
 
-/* ================================================================
-   API – DASHBOARD
-   ================================================================ */
-
 static void api_dashboard_stats(SOCKET client)
 {
     int total_students=0, total_sessions=0, total_attendance=0;
@@ -1116,10 +1003,6 @@ static void api_get_server_ip(SOCKET client)
     sprintf(resp, "{\"ip\":\"%s\"}", ip);
     send_response(client, "application/json", resp);
 }
-
-/* ================================================================
-   API – DELETE OPERATIONS
-   ================================================================ */
 
 static void api_delete_student(SOCKET client, char *body)
 {
@@ -1188,7 +1071,6 @@ static void api_delete_attendance(SOCKET client, char *body)
         "{\"success\":true,\"message\":\"%d attendance record(s) deleted\"}",
         rows);
     send_response(client, "application/json", resp);
-    /* No tree change needed – attendance rows don't affect session intervals */
 }
 
 static void api_delete_session(SOCKET client, char *body)
@@ -1222,18 +1104,12 @@ static void api_delete_session(SOCKET client, char *body)
         return;
     }
 
-    /* AVL interval tree deletion is complex; rebuilding is safe and
-       correct since sessions are rarely deleted.                        */
     rebuild_interval_tree();
     printf("[ITREE] Rebuilt after session %d deleted\n", session_id);
 
     send_response(client, "application/json",
         "{\"success\":true,\"message\":\"Session and attendance records deleted\"}");
 }
-
-/* ================================================================
-   API – TRIGGER EMAIL
-   ================================================================ */
 
 static void api_send_session_emails(SOCKET client, const char *query_str)
 {
@@ -1271,7 +1147,6 @@ static void api_send_session_emails(SOCKET client, const char *query_str)
     int exit_code = _pclose(pipe);
     printf("[EMAIL] Exit code: %d\n", exit_code);
 
-    /* Sanitize output for JSON embedding */
     char safe_out[512] = {0};
     int  si = 0;
     for (int i = 0; output[i] && si < (int)sizeof(safe_out) - 3; i++)
@@ -1316,10 +1191,6 @@ static void api_send_session_emails(SOCKET client, const char *query_str)
     }
 }
 
-/* ================================================================
-   ROUTER
-   ================================================================ */
-
 void handle_request(SOCKET client, char *req, const char *client_ip)
 {
     char method[10] = {0};
@@ -1335,7 +1206,6 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
     char *body = strstr(req, "\r\n\r\n");
     if (body) body += 4; else body = "";
 
-    /* HTML pages */
     if (strcmp(path,"/")==0 || strcmp(path,"/teacher")==0 ||
         strcmp(path,"/teacher.html")==0)
     {
@@ -1354,7 +1224,6 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
     if (strcmp(path,"/favicon.ico")==0)
     { send_response(client,"text/plain",""); return; }
 
-    /* Students */
     if (strcmp(path,"/api/register_student_manual")==0)
     { api_register_student(client,body);        return; }
     if (strcmp(path,"/api/register_students")==0)
@@ -1362,13 +1231,11 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
     if (strcmp(path,"/api/get_all_students")==0)
     { api_get_students(client);                 return; }
 
-    /* Sessions */
     if (strcmp(path,"/api/create_session")==0)
     { api_create_session(client,body);          return; }
     if (strcmp(path,"/api/get_sessions")==0)
     { api_get_sessions(client);                 return; }
 
-    /* Attendance */
     if (strcmp(path,"/api/mark_attendance")==0)
     { api_mark_attendance(client,body,client_ip); return; }
     if (strcmp(path,"/api/session_attendance")==0)
@@ -1376,7 +1243,6 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
     if (strcmp(path,"/api/search_attendance")==0)
     { api_search_attendance(client,query_str);  return; }
 
-    /* Delete */
     if (strcmp(path,"/api/delete_student")==0)
     { api_delete_student(client,body);          return; }
     if (strcmp(path,"/api/delete_attendance")==0)
@@ -1384,11 +1250,9 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
     if (strcmp(path,"/api/delete_session")==0)
     { api_delete_session(client,body);          return; }
 
-    /* Email */
     if (strcmp(path,"/api/send_session_emails")==0)
     { api_send_session_emails(client,query_str); return; }
 
-    /* Dashboard */
     if (strcmp(path,"/api/dashboard_stats")==0)
     { api_dashboard_stats(client);              return; }
     if (strcmp(path,"/api/get_server_ip")==0)
@@ -1396,10 +1260,6 @@ void handle_request(SOCKET client, char *req, const char *client_ip)
 
     send_404(client);
 }
-
-/* ================================================================
-   RECEIVE FULL REQUEST
-   ================================================================ */
 
 static int recv_full(SOCKET client, char *buffer, int max)
 {
@@ -1435,16 +1295,12 @@ static int recv_full(SOCKET client, char *buffer, int max)
     return total;
 }
 
-/* ================================================================
-   MAIN
-   ================================================================ */
-
 int main()
 {
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
 
-    init_database();   /* also calls load_interval_tree() */
+    init_database();
 
     SOCKET server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -1498,7 +1354,7 @@ int main()
     }
 
     closesocket(server_socket);
-    it_free(it_root);   /* clean up interval tree */
+    it_free(it_root);
     mysql_close(conn);
     WSACleanup();
     return 0;
