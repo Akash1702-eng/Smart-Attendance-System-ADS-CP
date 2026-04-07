@@ -272,7 +272,6 @@ const verifyResult   = document.getElementById('verifyResult');
    Helpers
 ══════════════════════════════════════════════════════════════ */
 function showMsg(id, msg, type) {
-    /* type: 'success' | 'error' | 'info' */
     const el = document.getElementById(id);
     if (!el) return;
     el.className = 'message ' + (type || 'info');
@@ -296,7 +295,6 @@ function goToStep(n) {
     setDot(2, n > 2 ? 'active' : '');
 }
 
-/* Show permanent success / failure banners (hides step content) */
 function showSuccessBanner() {
     document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
     document.querySelector('.step-indicator').style.display = 'none';
@@ -490,18 +488,41 @@ function captureFaceForVerify() {
 
                 if (resp.ok) {
                     var result = await resp.json();
-                    if (result.success && result.verified) {
+
+                    /* ── CASE 1: Face not registered — BLOCK, do not proceed ── */
+                    if (result.face_registered === false) {
+                        showVerifyBlocked(
+                            'Your face is not registered. Please ask your teacher to send you '
+                            + 'the face-registration email, complete registration, '
+                            + 'and then try marking attendance again.'
+                        );
+                    }
+                    /* ── CASE 2: Registered, verified OK ── */
+                    else if (result.success && result.verified) {
                         showVerifySuccess(result.message || 'Face matched successfully.');
-                    } else if (result.face_registered === false) {
-                        showVerifyWarning('Your face is not registered yet. Ask your teacher to send you the face-registration link.');
-                    } else {
-                        showVerifyFail(result.message || 'Face does not match. Ensure good lighting and look directly at the camera, then try again.');
+                    }
+                    /* ── CASE 3: Registered but face did not match ── */
+                    else {
+                        showVerifyFail(
+                            result.message ||
+                            'Face does not match. Ensure good lighting and look directly at the camera, then try again.'
+                        );
                     }
                 } else {
-                    showVerifyWarning('Face verification service unavailable. Proceeding without face check.');
+                    /* Server returned non-200 — treat as a network/service issue,
+                       but do NOT bypass face registration enforcement. */
+                    showVerifyFail(
+                        'Face verification service returned an error (' + resp.status + '). '
+                        + 'Please try again or contact your teacher.'
+                    );
                 }
             } catch(e) {
-                showVerifyWarning('Could not reach server. Proceeding without face verification.');
+                /* Network failure — do NOT allow bypass.
+                   Show an error so the student retries rather than silently proceeding. */
+                showVerifyFail(
+                    'Could not reach the server for face verification. '
+                    + 'Make sure you are on the classroom Wi-Fi and try again.'
+                );
             }
 
             btn.disabled  = false;
@@ -511,6 +532,20 @@ function captureFaceForVerify() {
     }, 'image/jpeg', 0.82);
 }
 
+/* Face not registered — hard block, student cannot proceed at all */
+function showVerifyBlocked(msg) {
+    verifyResult.className     = 'verify-result verify-fail';
+    verifyResult.innerHTML     = '🚫 ' + msg;
+    verifyResult.style.display = 'block';
+    faceVerified = false;
+    stopFaceCamera();
+    showMsg('msg2',
+        'You must register your face before marking attendance. '
+        + 'Contact your teacher to receive the registration link.',
+        'error');
+}
+
+/* Face verification passed */
 function showVerifySuccess(msg) {
     verifyResult.className     = 'verify-result verify-ok';
     verifyResult.innerHTML     = '✅ ' + msg;
@@ -520,15 +555,8 @@ function showVerifySuccess(msg) {
     clearMsg('msg2');
     setTimeout(function() { goToStep(3); }, 900);
 }
-function showVerifyWarning(msg) {
-    verifyResult.className     = 'verify-result verify-warn';
-    verifyResult.innerHTML     = '⚠️ ' + msg;
-    verifyResult.style.display = 'block';
-    faceVerified = true;
-    stopFaceCamera();
-    clearMsg('msg2');
-    setTimeout(function() { goToStep(3); }, 1400);
-}
+
+/* Face registered but did not match — let the student retry */
 function showVerifyFail(msg) {
     verifyResult.className     = 'verify-result verify-fail';
     verifyResult.innerHTML     = '❌ ' + msg;
@@ -539,10 +567,21 @@ function showVerifyFail(msg) {
 
 /* ══════════════════════════════════════════════════════════════
    Submit attendance
+   Extra guard: faceVerified must be true before the API call.
 ══════════════════════════════════════════════════════════════ */
 async function submitAttendance() {
     var prn  = document.getElementById('prn').value.trim();
     var name = document.getElementById('sname').value.trim();
+
+    /* Safety guard — should never be reachable normally, but prevents
+       any accidental path where faceVerified was not set. */
+    if (!faceVerified) {
+        showMsg('msg3',
+            'Face verification was not completed. Please go back and verify your face.',
+            'error');
+        return;
+    }
+
     if (!sessionId || !prn || !name) {
         showMsg('msg3', 'Missing information. Please go back to step 1.', 'error'); return;
     }
@@ -565,18 +604,17 @@ async function submitAttendance() {
         if (res.success) {
             showSuccessBanner();
         } else {
-            /* Permanent failures: already-marked, device-blocked */
             const isPermanent = res.message &&
                 (res.message.toLowerCase().includes('already') ||
-                 res.message.toLowerCase().includes('device'));
+                 res.message.toLowerCase().includes('device') ||
+                 res.message.toLowerCase().includes('face not registered'));
 
             if (isPermanent) {
                 showFailedBanner(
-                    'Attendance Already Recorded',
+                    'Attendance Could Not Be Marked',
                     res.message
                 );
             } else {
-                /* Transient error — let the student try again */
                 showMsg('msg3', res.message || 'Failed to mark attendance. Please try again.', 'error');
                 btn.disabled  = false;
                 btn.innerHTML = '✔ Mark My Attendance';
