@@ -2,311 +2,595 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Student Attendance Portal</title>
-
 <style>
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6fa; margin: 0;
+    min-height: 100vh; display: flex; flex-direction: column;
+}
+header {
+    background: #4a6cf7; color: white;
+    padding: 20px 24px; font-size: 22px; font-weight: 600;
+}
+.page-body {
+    flex: 1; display: flex;
+    justify-content: center; align-items: flex-start;
+    padding: 30px 16px;
+}
+.card {
+    background: white; border-radius: 8px;
+    padding: 28px 30px; width: 100%; max-width: 500px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.09);
+}
+h2 { margin: 0 0 20px; font-size: 20px; color: #222; }
+h3 { margin: 18px 0 12px; font-size: 16px; color: #333; }
 
-/* ── Base – matches teacher.html exactly ─────────────────────────── */
-body{
-  font-family: Arial, sans-serif;
-  background: #f4f6fa;
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+.session-box {
+    background: #eef7ff; border-left: 4px solid #4a6cf7;
+    padding: 10px 14px; margin-bottom: 18px;
+    border-radius: 0 6px 6px 0; font-size: 14px; color: #333;
+}
+.session-box b { color: #4a6cf7; }
+
+.instructions {
+    font-size: 13px; background: #fff3cd; color: #856404;
+    border-left: 4px solid #ffc107; padding: 10px 14px;
+    margin-bottom: 20px; border-radius: 0 6px 6px 0;
 }
 
-header{
-  background: #4a6cf7;
-  color: white;
-  padding: 20px;
-  font-size: 24px;
+/* ── Steps ─────────────────────────────────────────────────── */
+.step { display: none; animation: fadeIn 0.25s ease; }
+.step.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+.step-indicator { display: flex; gap: 8px; margin-bottom: 20px; }
+.step-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #d1d5db; transition: background 0.3s;
 }
+.step-dot.active  { background: #4a6cf7; }
+.step-dot.done    { background: #10b981; }
 
-/* ── Page layout ──────────────────────────────────────────────────── */
-.page-body{
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 30px 16px;
+/* ── Form ──────────────────────────────────────────────────── */
+label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 4px; }
+input[type="text"], input[type="tel"] {
+    width: 100%; padding: 10px 12px; margin-bottom: 14px;
+    border: 1px solid #ccc; border-radius: 6px;
+    font-size: 14px; transition: .15s;
 }
+input:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 3px rgba(74,108,247,.13); }
+input:disabled { background: #f4f6fa; color: #aaa; }
 
-/* ── Card – same white card style as teacher tabs ─────────────────── */
-.card{
-  background: white;
-  border-radius: 5px;
-  padding: 28px 30px;
-  width: 100%;
-  max-width: 460px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+/* ── Camera ─────────────────────────────────────────────────── */
+.camera-box {
+    background: #1a1a2e; border-radius: 14px;
+    overflow: hidden; margin: 14px 0;
+    min-height: 240px; display: flex;
+    align-items: center; justify-content: center;
+    position: relative;
 }
-
-h2{
-  margin: 0 0 20px 0;
-  font-size: 20px;
-  color: #222;
+#faceVideo {
+    width: 100%; height: auto; display: none;
+    transform: scaleX(-1);
 }
+.cam-placeholder { text-align: center; color: #adb5bd; padding: 30px 20px; }
+.cam-placeholder .icon { font-size: 42px; margin-bottom: 10px; }
+.cam-error { display: none; text-align: center; color: #adb5bd; padding: 30px 20px; }
+.cam-error .icon { font-size: 42px; margin-bottom: 10px; }
 
-/* ── Session info box ─────────────────────────────────────────────── */
-.session-box{
-  background: #eef7ff;
-  border-left: 4px solid #4a6cf7;
-  padding: 10px 14px;
-  margin-bottom: 18px;
-  border-radius: 0 4px 4px 0;
-  font-size: 14px;
-  color: #333;
+canvas#faceCanvas { display: none; }
+
+/* ── Verify result ──────────────────────────────────────────── */
+.verify-result {
+    padding: 10px 14px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; text-align: center;
+    margin: 10px 0; display: none; line-height: 1.4;
 }
+.verify-ok   { background: #d1fae5; color: #065f46; }
+.verify-fail { background: #fee2e2; color: #991b1b; }
+.verify-warn { background: #fff3cd; color: #856404; }
 
-.session-box b{
-  color: #4a6cf7;
+/* ── Buttons ────────────────────────────────────────────────── */
+button {
+    width: 100%; padding: 11px 20px;
+    background: #4a6cf7; color: white;
+    border: none; cursor: pointer; border-radius: 6px;
+    font-size: 15px; font-family: Arial; transition: .15s; margin-bottom: 8px;
 }
+button:hover:not(:disabled) { background: #3a56d8; }
+button:disabled { background: #a0aee8; cursor: not-allowed; }
+.btn-secondary { background: #6c757d; }
+.btn-secondary:hover:not(:disabled) { background: #5a6268; }
+.btn-success { background: #10b981; }
+.btn-success:hover:not(:disabled) { background: #059669; }
 
-/* ── Warning notice ───────────────────────────────────────────────── */
-.instructions{
-  font-size: 13px;
-  background: #fff3cd;
-  color: #856404;
-  border-left: 4px solid #ffc107;
-  padding: 10px 14px;
-  margin-bottom: 20px;
-  border-radius: 0 4px 4px 0;
+/* ── Messages ───────────────────────────────────────────────── */
+.message { padding: 11px 14px; margin-top: 14px; border-radius: 6px; font-size: 14px; line-height: 1.45; }
+.success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; border-radius: 0 6px 6px 0; }
+.error   { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; border-radius: 0 6px 6px 0; }
+.info    { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; border-radius: 0 6px 6px 0; }
+
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+
+/* ── Success banner ─────────────────────────────────────────── */
+.submitted-banner { display: none; text-align: center; padding: 16px 0 8px; }
+.submitted-banner .checkmark {
+    width: 70px; height: 70px; background: #d4edda;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 34px;
 }
+.submitted-banner .banner-title { color: #155724; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.submitted-banner .banner-sub   { color: #4a5568; font-size: 14px; }
 
-/* ── Form labels ──────────────────────────────────────────────────── */
-label{
-  display: block;
-  font-size: 13px;
-  font-weight: bold;
-  color: #555;
-  margin-bottom: 4px;
+/* ── Error banner ───────────────────────────────────────────── */
+.failed-banner { display: none; text-align: center; padding: 16px 0 8px; }
+.failed-banner .x-mark {
+    width: 70px; height: 70px; background: #f8d7da;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 34px;
 }
+.failed-banner .banner-title { color: #721c24; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.failed-banner .banner-sub   { color: #4a5568; font-size: 14px; line-height: 1.5; }
 
-/* ── Inputs – identical to teacher.html ──────────────────────────── */
-input[type="text"]{
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-  font-size: 14px;
-  font-family: Arial, sans-serif;
-  transition: border-color 0.15s;
+/* ── Inline loading spinner ─────────────────────────────────── */
+.loading-inline {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid #fff; border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 6px;
 }
-
-input[type="text"]:focus{
-  outline: none;
-  border-color: #4a6cf7;
-  box-shadow: 0 0 0 3px rgba(74,108,247,0.12);
-}
-
-input[type="text"]:disabled{
-  background: #f4f6fa;
-  color: #aaa;
-}
-
-/* ── Primary button – identical to teacher.html ──────────────────── */
-button{
-  width: 100%;
-  padding: 10px 20px;
-  background: #4a6cf7;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 15px;
-  font-family: Arial, sans-serif;
-  transition: background 0.15s;
-}
-
-button:hover:not(:disabled){
-  background: #3a56d8;
-}
-
-button:disabled{
-  background: #a0aee8;
-  cursor: not-allowed;
-}
-
-/* ── Messages – identical to teacher.html ────────────────────────── */
-.message{
-  padding: 10px;
-  margin-top: 14px;
-  border-radius: 4px;
-  font-size: 14px;
-  text-align: center;
-}
-
-.success{ background: #d4edda; color: #155724; }
-.error  { background: #f8d7da; color: #721c24; }
-.info   { background: #d1ecf1; color: #0c5460; }
-
-/* ── Divider ──────────────────────────────────────────────────────── */
-hr{
-  border: none;
-  border-top: 1px solid #e5e7eb;
-  margin: 22px 0;
-}
-
-/* ── Submitted state banner ───────────────────────────────────────── */
-.submitted-banner{
-  display: none;
-  text-align: center;
-  padding: 20px 0 8px;
-}
-
-.submitted-banner .checkmark{
-  width: 56px;
-  height: 56px;
-  background: #d4edda;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 14px;
-  font-size: 26px;
-}
-
-.submitted-banner p{
-  color: #155724;
-  font-size: 15px;
-  margin: 0;
-}
-
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-
 <body>
-
 <header>Smart Attendance System</header>
-
 <div class="page-body">
 <div class="card">
+    <h2>Mark Attendance</h2>
 
-  <h2>Mark Attendance</h2>
+    <div class="session-box">Session ID: <b id="displaySession">Loading…</b></div>
+    <div class="instructions">⚠️ Make sure you are connected to the <strong>classroom Wi-Fi</strong> before proceeding.</div>
 
-  <!-- Session info -->
-  <div class="session-box">
-    Session ID: <b id="displaySession">Loading...</b>
-  </div>
+    <!-- Step dots -->
+    <div class="step-indicator">
+        <div class="step-dot active" id="dot0"></div>
+        <div class="step-dot"       id="dot1"></div>
+        <div class="step-dot"       id="dot2"></div>
+    </div>
 
-  <!-- WiFi reminder -->
-  <div class="instructions">
-    &#9888; Please ensure you are connected to the classroom WiFi before marking attendance.
-  </div>
+    <!-- ── STEP 1: Enter PRN + Name ───────────────────────────── -->
+    <div class="step active" id="step1">
+        <h3>Step 1 — Enter your details</h3>
+        <label for="prn">Student PRN</label>
+        <input type="text" id="prn" placeholder="e.g. 1252030027" autocomplete="off">
 
-  <!-- Form -->
-  <form id="attendanceForm" autocomplete="off">
+        <label for="sname">Full Name</label>
+        <input type="text" id="sname" placeholder="Your full name" autocomplete="off">
 
-    <label for="prn">Student PRN</label>
-    <input type="text" id="prn" required placeholder="Enter your PRN">
+        <button id="btnToFace" onclick="goToFaceStep()">Next — Verify Face →</button>
+        <div id="msg1"></div>
+    </div>
 
-    <label for="name">Full Name</label>
-    <input type="text" id="name" required placeholder="Enter your full name">
+    <!-- ── STEP 2: Face verification ──────────────────────────── -->
+    <div class="step" id="step2">
+        <h3>Step 2 — Face Verification</h3>
+        <p style="font-size:13px;color:#555;margin-bottom:10px;">
+            Look straight at the camera in good lighting and tap Capture.
+        </p>
 
-    <input type="hidden" id="sessionId">
+        <div class="camera-box">
+            <video id="faceVideo" autoplay playsinline muted></video>
+            <div class="cam-placeholder" id="camPlaceholder">
+                <div class="icon">📷</div>
+                <div>Starting camera…</div>
+            </div>
+            <div class="cam-error" id="camError">
+                <div class="icon">📷❌</div>
+                <div style="font-size:14px;font-weight:600;">Camera unavailable</div>
+                <div style="font-size:12px;margin-top:6px;color:#adb5bd;">Allow camera access and tap Retry Camera</div>
+            </div>
+        </div>
+        <canvas id="faceCanvas"></canvas>
 
-    <button type="submit" id="submitBtn">Mark Attendance</button>
+        <div class="verify-result" id="verifyResult"></div>
 
-  </form>
+        <button id="btnCaptureFace" onclick="captureFaceForVerify()" disabled>
+            📸 Capture &amp; Verify Face
+        </button>
+        <button class="btn-secondary" onclick="goBack()" style="margin-top:4px;">← Back</button>
+        <button class="btn-secondary" id="btnRetryCamera" onclick="retryCamera()" style="display:none;">
+            🔄 Retry Camera
+        </button>
+        <div id="msg2"></div>
+    </div>
 
-  <!-- Result message -->
-  <div id="message"></div>
+    <!-- ── STEP 3: Confirm & Submit ───────────────────────────── -->
+    <div class="step" id="step3">
+        <h3>Step 3 — Confirm &amp; Submit</h3>
 
-  <!-- Success state (shown after successful submission) -->
-  <div class="submitted-banner" id="successBanner">
-    <hr>
-    <div class="checkmark">&#10003;</div>
-    <p>Your attendance has been recorded.<br>You may close this page.</p>
-  </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:16px;font-size:14px;line-height:1.7;">
+            <div>✅ <strong>Face verified successfully</strong></div>
+            <div style="margin-top:6px;">PRN: <strong id="confirmPrn">—</strong></div>
+            <div>Name: <strong id="confirmName">—</strong></div>
+            <div>Session: <strong id="confirmSession">—</strong></div>
+        </div>
 
+        <button id="submitBtn" class="btn-success" onclick="submitAttendance()">
+            ✔ Mark My Attendance
+        </button>
+        <button class="btn-secondary" onclick="goBack2()">← Verify Again</button>
+        <div id="msg3"></div>
+    </div>
+
+    <!-- ── SUCCESS banner (replaces card content after marking) ── -->
+    <div class="submitted-banner" id="successBanner">
+        <hr>
+        <div class="checkmark">✓</div>
+        <div class="banner-title">Attendance Recorded!</div>
+        <div class="banner-sub">Your attendance has been successfully saved.<br>You may now close this page.</div>
+    </div>
+
+    <!-- ── FAILURE banner (already-marked / device-blocked) ────── -->
+    <div class="failed-banner" id="failedBanner">
+        <hr>
+        <div class="x-mark">✗</div>
+        <div class="banner-title" id="failedTitle">Could Not Mark Attendance</div>
+        <div class="banner-sub" id="failedSub"></div>
+    </div>
 </div>
 </div>
 
 <script>
+/* ══════════════════════════════════════════════════════════════
+   Constants — cap face capture at 640×480 to keep upload small
+══════════════════════════════════════════════════════════════ */
+const CAP_MAX_W = 640;
+const CAP_MAX_H = 480;
 
-/* ── Get session_id from URL ─────────────────────────────────────── */
-function getSessionId(){
-  let params  = new URLSearchParams(window.location.search)
-  let session = params.get("session_id")
+/* ══════════════════════════════════════════════════════════════
+   State
+══════════════════════════════════════════════════════════════ */
+let sessionId    = null;
+let faceStream   = null;
+let faceActive   = false;
+let faceVerified = false;
+let camReadyTimer = null;
 
-  if(!session){
-    document.getElementById("displaySession").innerText = "Invalid Session"
-    document.getElementById("submitBtn").disabled = true
-    showMessage("No session ID in the link. Please use the link sent to your email.", false)
-    return
-  }
+const faceVideo      = document.getElementById('faceVideo');
+const faceCanvas     = document.getElementById('faceCanvas');
+const faceCtx        = faceCanvas.getContext('2d');
+const camPlaceholder = document.getElementById('camPlaceholder');
+const camError       = document.getElementById('camError');
+const verifyResult   = document.getElementById('verifyResult');
 
-  document.getElementById("sessionId").value       = session
-  document.getElementById("displaySession").innerText = session
+/* ══════════════════════════════════════════════════════════════
+   Helpers
+══════════════════════════════════════════════════════════════ */
+function showMsg(id, msg, type) {
+    /* type: 'success' | 'error' | 'info' */
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'message ' + (type || 'info');
+    el.textContent = msg;
+}
+function clearMsg(id) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = ''; }
+}
+function setDot(step, state) {
+    const d = document.getElementById('dot' + step);
+    if (!d) return;
+    d.className = 'step-dot ' + state;
+}
+function goToStep(n) {
+    document.querySelectorAll('.step').forEach(function(el, i) {
+        el.classList.toggle('active', i + 1 === n);
+    });
+    setDot(0, n > 1 ? 'done'   : 'active');
+    setDot(1, n > 2 ? 'done'   : n === 2 ? 'active' : '');
+    setDot(2, n > 2 ? 'active' : '');
 }
 
+/* Show permanent success / failure banners (hides step content) */
+function showSuccessBanner() {
+    document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
+    document.querySelector('.step-indicator').style.display = 'none';
+    document.getElementById('successBanner').style.display = 'block';
+    document.getElementById('failedBanner').style.display  = 'none';
+}
+function showFailedBanner(title, sub) {
+    document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
+    document.querySelector('.step-indicator').style.display = 'none';
+    document.getElementById('failedBanner').style.display  = 'block';
+    document.getElementById('successBanner').style.display = 'none';
+    document.getElementById('failedTitle').textContent = title || 'Could Not Mark Attendance';
+    document.getElementById('failedSub').textContent   = sub   || 'Please contact your teacher.';
+}
 
-/* ── Submit attendance ───────────────────────────────────────────── */
-document.getElementById("attendanceForm").onsubmit = async function(e){
-  e.preventDefault()
+/* ══════════════════════════════════════════════════════════════
+   Session ID
+══════════════════════════════════════════════════════════════ */
+function initSession() {
+    const params = new URLSearchParams(window.location.search);
+    sessionId    = params.get('session_id');
+    if (!sessionId) {
+        document.getElementById('displaySession').textContent = 'Invalid';
+        document.getElementById('btnToFace').disabled = true;
+        showMsg('msg1', 'No session ID found in the link. Please use the link sent to your email.', 'error');
+        return;
+    }
+    document.getElementById('displaySession').textContent = sessionId;
+    document.getElementById('confirmSession').textContent = 'Session #' + sessionId;
+}
 
-  let prn     = document.getElementById("prn").value.trim()
-  let name    = document.getElementById("name").value.trim()
-  let session = document.getElementById("sessionId").value
+/* ══════════════════════════════════════════════════════════════
+   Step navigation
+══════════════════════════════════════════════════════════════ */
+function goToFaceStep() {
+    const prn  = document.getElementById('prn').value.trim();
+    const name = document.getElementById('sname').value.trim();
+    if (!prn)  { showMsg('msg1', 'Please enter your PRN.',       'error'); return; }
+    if (!name) { showMsg('msg1', 'Please enter your full name.', 'error'); return; }
+    clearMsg('msg1');
+    document.getElementById('confirmPrn').textContent  = prn;
+    document.getElementById('confirmName').textContent = name;
+    goToStep(2);
+    startFaceCamera();
+}
+function goBack() {
+    stopFaceCamera();
+    verifyResult.style.display = 'none';
+    clearMsg('msg2');
+    goToStep(1);
+}
+function goBack2() {
+    faceVerified = false;
+    goToStep(2);
+    startFaceCamera();
+}
 
-  if(!session){
-    showMessage("Invalid session link.", false)
-    return
-  }
+/* ══════════════════════════════════════════════════════════════
+   Camera for face verification
+══════════════════════════════════════════════════════════════ */
+function stopFaceCamera() {
+    if (camReadyTimer) { clearTimeout(camReadyTimer); camReadyTimer = null; }
+    if (faceStream) { faceStream.getTracks().forEach(function(t) { t.stop(); }); faceStream = null; }
+    faceVideo.srcObject = null;
+    faceActive = false;
+    document.getElementById('btnCaptureFace').disabled = true;
+}
 
-  let btn = document.getElementById("submitBtn")
-  btn.disabled   = true
-  btn.innerText  = "Submitting..."
+function onFaceCamReady() {
+    if (faceActive) return;
+    faceActive = true;
+    if (camReadyTimer) { clearTimeout(camReadyTimer); camReadyTimer = null; }
+    camPlaceholder.style.display = 'none';
+    camError.style.display       = 'none';
+    faceVideo.style.display      = 'block';
+    document.getElementById('btnCaptureFace').disabled = false;
+    document.getElementById('btnRetryCamera').style.display = 'none';
+    showMsg('msg2', 'Camera ready. Position your face clearly and tap Capture.', 'info');
+}
 
-  let data = `prn=${encodeURIComponent(prn)}&name=${encodeURIComponent(name)}&session_id=${session}`
+function startFaceCamera() {
+    faceActive = false;
+    faceVideo.style.display      = 'none';
+    camPlaceholder.style.display = 'block';
+    camError.style.display       = 'none';
+    document.getElementById('btnCaptureFace').disabled = true;
 
-  try{
-    let r   = await fetch("/api/mark_attendance",{
-      method:  "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body:    data
-    })
+    var tryList = [
+        { audio: false, video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { audio: false, video: { facingMode: 'user' } },
+        { video: true }
+    ];
 
-    let res = await r.json()
+    function tryNext(idx) {
+        if (idx >= tryList.length) {
+            camPlaceholder.style.display = 'none';
+            camError.style.display       = 'block';
+            document.getElementById('btnRetryCamera').style.display = 'block';
+            showMsg('msg2', 'Camera could not be started. Please allow camera access and tap Retry Camera.', 'error');
+            return;
+        }
+        navigator.mediaDevices.getUserMedia(tryList[idx])
+            .then(function(stream) {
+                faceStream           = stream;
+                faceVideo.srcObject  = stream;
 
-    showMessage(res.message, res.success)
+                faceVideo.oncanplay  = function() { faceVideo.oncanplay = null;  onFaceCamReady(); };
+                faceVideo.onplaying  = function() { faceVideo.onplaying = null;  onFaceCamReady(); };
 
-    if(res.success){
-      /* Disable the form so they can't resubmit */
-      document.getElementById("prn").disabled  = true
-      document.getElementById("name").disabled = true
-      btn.style.display = "none"
-      document.getElementById("successBanner").style.display = "block"
-    } else {
-      btn.disabled  = false
-      btn.innerText = "Mark Attendance"
+                faceVideo.play().catch(function(){});
+
+                if (faceVideo.readyState >= 3) { onFaceCamReady(); return; }
+
+                camReadyTimer = setTimeout(function() {
+                    if (!faceActive && faceVideo.readyState >= 2) onFaceCamReady();
+                    else if (!faceActive) {
+                        camPlaceholder.style.display = 'none';
+                        camError.style.display = 'block';
+                        document.getElementById('btnRetryCamera').style.display = 'block';
+                        showMsg('msg2', 'Camera opened but no video appeared. Try refreshing the page.', 'error');
+                    }
+                }, 5000);
+            })
+            .catch(function(err) {
+                if (err.name === 'NotAllowedError') {
+                    camPlaceholder.style.display = 'none';
+                    camError.style.display       = 'block';
+                    document.getElementById('btnRetryCamera').style.display = 'block';
+                    showMsg('msg2', 'Camera access was denied. Please tap the camera icon in your browser bar, allow access, then tap Retry Camera.', 'error');
+                } else {
+                    tryNext(idx + 1);
+                }
+            });
     }
 
-  } catch(err){
-    showMessage("Network error. Please check your WiFi connection and try again.", false)
-    btn.disabled  = false
-    btn.innerText = "Mark Attendance"
-  }
+    tryNext(0);
 }
 
-
-/* ── Show message ────────────────────────────────────────────────── */
-function showMessage(msg, success){
-  let div       = document.getElementById("message")
-  div.className = "message " + (success ? "success" : "error")
-  div.innerText = msg || ""
+function retryCamera() {
+    clearMsg('msg2');
+    stopFaceCamera();
+    startFaceCamera();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   Face capture & server-side verification
+══════════════════════════════════════════════════════════════ */
+function captureFaceForVerify() {
+    if (!faceActive || !faceVideo.videoWidth) {
+        showMsg('msg2', 'Camera is not ready yet. Please wait a moment.', 'error'); return;
+    }
 
-/* ── Init ────────────────────────────────────────────────────────── */
-window.onload = function(){
-  getSessionId()
+    /* Cap to 640×480 */
+    var srcW = faceVideo.videoWidth, srcH = faceVideo.videoHeight;
+    var w = srcW, h = srcH;
+    if (w > CAP_MAX_W) { h = Math.round(h * CAP_MAX_W / w); w = CAP_MAX_W; }
+    if (h > CAP_MAX_H) { w = Math.round(w * CAP_MAX_H / h); h = CAP_MAX_H; }
+
+    faceCanvas.width  = w;
+    faceCanvas.height = h;
+
+    /* Mirror to match live preview */
+    faceCtx.save();
+    faceCtx.translate(w, 0);
+    faceCtx.scale(-1, 1);
+    faceCtx.drawImage(faceVideo, 0, 0, w, h);
+    faceCtx.restore();
+
+    var prn = document.getElementById('prn').value.trim();
+
+    faceCanvas.toBlob(function(blob) {
+        if (!blob) { showMsg('msg2', 'Capture failed. Please try again.', 'error'); return; }
+
+        var btn = document.getElementById('btnCaptureFace');
+        btn.disabled   = true;
+        btn.innerHTML  = '<span class="loading-inline"></span>Verifying…';
+
+        verifyResult.style.display = 'none';
+        clearMsg('msg2');
+
+        var reader = new FileReader();
+        reader.onloadend = async function() {
+            var base64 = reader.result.split(',')[1];
+            try {
+                var resp = await fetch('/api/verify_face', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body:    'prn=' + encodeURIComponent(prn) +
+                             '&face_image=' + encodeURIComponent(base64)
+                });
+
+                if (resp.ok) {
+                    var result = await resp.json();
+                    if (result.success && result.verified) {
+                        showVerifySuccess(result.message || 'Face matched successfully.');
+                    } else if (result.face_registered === false) {
+                        showVerifyWarning('Your face is not registered yet. Ask your teacher to send you the face-registration link.');
+                    } else {
+                        showVerifyFail(result.message || 'Face does not match. Ensure good lighting and look directly at the camera, then try again.');
+                    }
+                } else {
+                    showVerifyWarning('Face verification service unavailable. Proceeding without face check.');
+                }
+            } catch(e) {
+                showVerifyWarning('Could not reach server. Proceeding without face verification.');
+            }
+
+            btn.disabled  = false;
+            btn.innerHTML = '📸 Capture &amp; Verify Face';
+        };
+        reader.readAsDataURL(blob);
+    }, 'image/jpeg', 0.82);
 }
 
+function showVerifySuccess(msg) {
+    verifyResult.className     = 'verify-result verify-ok';
+    verifyResult.innerHTML     = '✅ ' + msg;
+    verifyResult.style.display = 'block';
+    faceVerified = true;
+    stopFaceCamera();
+    clearMsg('msg2');
+    setTimeout(function() { goToStep(3); }, 900);
+}
+function showVerifyWarning(msg) {
+    verifyResult.className     = 'verify-result verify-warn';
+    verifyResult.innerHTML     = '⚠️ ' + msg;
+    verifyResult.style.display = 'block';
+    faceVerified = true;
+    stopFaceCamera();
+    clearMsg('msg2');
+    setTimeout(function() { goToStep(3); }, 1400);
+}
+function showVerifyFail(msg) {
+    verifyResult.className     = 'verify-result verify-fail';
+    verifyResult.innerHTML     = '❌ ' + msg;
+    verifyResult.style.display = 'block';
+    faceVerified = false;
+    showMsg('msg2', 'Tap "Capture & Verify Face" to try again.', 'info');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Submit attendance
+══════════════════════════════════════════════════════════════ */
+async function submitAttendance() {
+    var prn  = document.getElementById('prn').value.trim();
+    var name = document.getElementById('sname').value.trim();
+    if (!sessionId || !prn || !name) {
+        showMsg('msg3', 'Missing information. Please go back to step 1.', 'error'); return;
+    }
+
+    var btn = document.getElementById('submitBtn');
+    btn.disabled   = true;
+    btn.innerHTML  = '<span class="loading-inline"></span>Submitting…';
+    clearMsg('msg3');
+
+    try {
+        var r = await fetch('/api/mark_attendance', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'prn=' + encodeURIComponent(prn) +
+                     '&name=' + encodeURIComponent(name) +
+                     '&session_id=' + sessionId
+        });
+        var res = await r.json();
+
+        if (res.success) {
+            showSuccessBanner();
+        } else {
+            /* Permanent failures: already-marked, device-blocked */
+            const isPermanent = res.message &&
+                (res.message.toLowerCase().includes('already') ||
+                 res.message.toLowerCase().includes('device'));
+
+            if (isPermanent) {
+                showFailedBanner(
+                    'Attendance Already Recorded',
+                    res.message
+                );
+            } else {
+                /* Transient error — let the student try again */
+                showMsg('msg3', res.message || 'Failed to mark attendance. Please try again.', 'error');
+                btn.disabled  = false;
+                btn.innerHTML = '✔ Mark My Attendance';
+            }
+        }
+    } catch(e) {
+        showMsg('msg3', 'Network error. Make sure you are on the classroom Wi-Fi and try again.', 'error');
+        btn.disabled  = false;
+        btn.innerHTML = '✔ Mark My Attendance';
+    }
+}
+
+window.addEventListener('beforeunload', function() { stopFaceCamera(); });
+window.onload = function() { initSession(); };
 </script>
 </body>
 </html>

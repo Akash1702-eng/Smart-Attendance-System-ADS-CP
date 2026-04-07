@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Face Registration | Smart Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+
+        .card {
+            max-width: 640px; width: 100%;
+            background: white; border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 24px 28px 18px;
+            background: linear-gradient(135deg, #4a6cf7, #764ba2);
+            color: white;
+        }
+        .card-header h1 { font-size: 1.5rem; font-weight: 700; }
+        .card-header p  { font-size: 0.82rem; opacity: 0.85; margin-top: 4px; }
+
+        .card-body { padding: 20px 24px 28px; }
+
+        /* ── Info strip ── */
+        .info-card {
+            background: #f4f6ff; border-radius: 14px;
+            padding: 14px 18px; margin-bottom: 20px;
+            border: 1px solid #dde3ff;
+            display: grid; grid-template-columns: auto 1fr;
+            column-gap: 12px; row-gap: 6px;
+            font-size: 0.88rem;
+        }
+        .info-label { font-weight: 700; color: #4a6cf7; white-space: nowrap; }
+        .info-value  { color: #212529; word-break: break-all; }
+
+        /* ── Camera area ── */
+        .camera-wrap {
+            position: relative; background: #111827;
+            border-radius: 18px; overflow: hidden;
+            margin-bottom: 20px;
+            aspect-ratio: 4/3;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        #video {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: none;
+        }
+
+        /* Face oval guide */
+        .face-guide {
+            position: absolute; inset: 0;
+            pointer-events: none; display: none;
+            align-items: center; justify-content: center;
+        }
+        .face-guide svg { width: 55%; max-width: 200px; opacity: 0.6; }
+
+        /* Countdown badge */
+        #countdown {
+            position: absolute; inset: 0;
+            display: none; align-items: center; justify-content: center;
+            font-size: 5rem; font-weight: 800; color: white;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+            pointer-events: none;
+        }
+
+        /* Overlay states */
+        .cam-overlay {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 24px; text-align: center; color: #9ca3af;
+        }
+        .cam-overlay .icon  { font-size: 3rem; margin-bottom: 10px; line-height: 1; }
+        .cam-overlay .title { font-size: 0.95rem; font-weight: 600; color: #d1d5db; margin-bottom: 6px; }
+        .cam-overlay .sub   { font-size: 0.78rem; line-height: 1.5; color: #9ca3af; }
+
+        .retry-cam-btn {
+            margin-top: 14px; background: #4a6cf7; border: none;
+            padding: 9px 22px; border-radius: 30px; color: white;
+            font-weight: 600; font-size: 0.83rem; cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* ── Buttons ── */
+        canvas { display: none; }
+
+        .btn-row {
+            display: flex; gap: 10px; justify-content: center;
+            flex-wrap: wrap; margin-bottom: 16px;
+        }
+
+        button {
+            border: none; font-weight: 600;
+            padding: 11px 26px; border-radius: 40px;
+            font-size: 0.88rem; font-family: inherit;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        #captureBtn {
+            background: #4a6cf7; color: white;
+            box-shadow: 0 3px 12px rgba(74,108,247,0.35);
+        }
+        #captureBtn:hover:not(:disabled) { background: #3a56d8; transform: translateY(-1px); }
+        #captureBtn:active:not(:disabled) { transform: translateY(0); }
+        #captureBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        #retryBtn { background: #6c757d; color: white; display: none; }
+        #retryBtn:hover { background: #5a6268; }
+
+        /* ── Preview ── */
+        .preview-box {
+            display: none; margin-top: 4px;
+            padding: 14px 16px; background: #f8f9fa;
+            border-radius: 14px; text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        .preview-box p   { font-size: 0.75rem; color: #6c757d; margin-bottom: 8px; }
+        .preview-box img { max-width: 120px; border-radius: 10px; border: 2px solid #dee2e6; }
+
+        /* ── Message banner ── */
+        .message {
+            margin-top: 14px; padding: 11px 16px;
+            border-radius: 12px; font-size: 0.84rem;
+            font-weight: 500; text-align: center; display: none;
+            line-height: 1.45;
+        }
+        .message.show    { display: block; }
+        .message.success { background: #d4edda; color: #155724; border-left: 3px solid #28a745; border-radius: 0 12px 12px 0; }
+        .message.error   { background: #f8d7da; color: #721c24; border-left: 3px solid #dc3545; border-radius: 0 12px 12px 0; }
+        .message.info    { background: #e8edff; color: #1a3bcc; border-left: 3px solid #4a6cf7; border-radius: 0 12px 12px 0; }
+        .message.warning { background: #fff3cd; color: #856404; border-left: 3px solid #ffc107; border-radius: 0 12px 12px 0; }
+
+        /* ── Loading ── */
+        .loading {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: none; align-items: center; justify-content: center; z-index: 999;
+        }
+        .loading.show { display: flex; }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid rgba(255,255,255,0.25);
+            border-top: 4px solid white; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* HTTP notice */
+        .http-notice {
+            display: none;
+            background: #fff3cd; color: #856404;
+            padding: 10px 14px; font-size: 0.8rem;
+            border-radius: 10px; margin-bottom: 16px;
+            border: 1px solid #ffc107; line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .card-body { padding: 16px 16px 24px; }
+            .card-header { padding: 20px 18px 14px; }
+            button { padding: 10px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="card-header">
+        <h1>📸 Face Registration</h1>
+        <p>Register your face once to enable contactless attendance</p>
+    </div>
+
+    <div class="card-body">
+
+        <!--
+          Shown only when page is opened over plain http:// on a non-localhost address.
+          Camera requires HTTPS — teacher should run https_proxy.py and share the
+          https:// link instead.
+        -->
+        <div class="http-notice" id="httpNotice">
+            ⚠️ <strong>Camera blocked on HTTP.</strong>
+            Ask your teacher to share the <strong>https://</strong> link instead.
+            (Teacher: run <code>python https_proxy.py</code>)
+        </div>
+
+        <!-- Student info -->
+        <div class="info-card">
+            <span class="info-label">PRN</span>   <span class="info-value" id="prnText">—</span>
+            <span class="info-label">Name</span>  <span class="info-value" id="nameText">—</span>
+            <span class="info-label">Email</span> <span class="info-value" id="emailText">—</span>
+        </div>
+
+        <!-- Camera -->
+        <div class="camera-wrap" id="cameraWrap">
+            <video id="video" autoplay playsinline muted></video>
+
+            <!-- Oval face guide shown when camera is active -->
+            <div class="face-guide" id="faceGuide">
+                <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="100" cy="130" rx="85" ry="115"
+                        stroke="white" stroke-width="2.5"
+                        stroke-dasharray="8 5"/>
+                </svg>
+            </div>
+
+            <!-- Countdown -->
+            <div id="countdown"></div>
+
+            <!-- States -->
+            <div class="cam-overlay" id="stateStarting">
+                <div class="icon">📷</div>
+                <div class="title">Starting camera…</div>
+                <div class="sub">Please allow camera access when prompted</div>
+            </div>
+
+            <div class="cam-overlay" id="stateError" style="display:none;">
+                <div class="icon" id="errorIcon">📷</div>
+                <div class="title" id="errorTitle">Camera unavailable</div>
+                <div class="sub" id="errorSub">Allow camera access and tap Try Again</div>
+                <button class="retry-cam-btn" id="retryCamBtn">🔄 Try Again</button>
+            </div>
+        </div>
+
+        <!--
+            Canvas is hidden — used only for image capture.
+            Image is capped at 640×480 before encoding so the upload
+            stays ~60-100 KB (well within the server's 4 MB buffer).
+        -->
+        <canvas id="canvas"></canvas>
+
+        <!-- Action buttons -->
+        <div class="btn-row">
+            <button id="captureBtn" disabled>📸 Capture &amp; Register</button>
+            <button id="retryBtn">↺ Register Again</button>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-box" id="previewBox">
+            <p>Captured preview:</p>
+            <img id="previewImg" alt="Face preview">
+        </div>
+
+        <div class="message" id="msg"></div>
+    </div>
+</div>
+
+<div class="loading" id="loader"><div class="spinner"></div></div>
+
+<script>
+/* ─── Refs ─────────────────────────────────────────────── */
+const video       = document.getElementById('video');
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+const captureBtn  = document.getElementById('captureBtn');
+const retryBtn    = document.getElementById('retryBtn');
+const previewBox  = document.getElementById('previewBox');
+const previewImg  = document.getElementById('previewImg');
+const msgEl       = document.getElementById('msg');
+const loader      = document.getElementById('loader');
+const faceGuide   = document.getElementById('faceGuide');
+const countdownEl = document.getElementById('countdown');
+const stateStart  = document.getElementById('stateStarting');
+const stateError  = document.getElementById('stateError');
+const errorIcon   = document.getElementById('errorIcon');
+const errorTitle  = document.getElementById('errorTitle');
+const errorSub    = document.getElementById('errorSub');
+
+/* ─── State ─────────────────────────────────────────────── */
+let stream       = null;
+let cameraReady  = false;
+let registered   = false;
+let currentPrn   = '';
+let safetyTimer  = null;
+
+/*
+ * MAX capture size — 640×480 is more than enough for face recognition.
+ * Keeping it small ensures the base64 upload stays under ~100 KB,
+ * well within the server's 4 MB BODY_BUFFER_SIZE.
+ */
+const CAP_MAX_W = 640;
+const CAP_MAX_H = 480;
+
+/* ─── Helpers ───────────────────────────────────────────── */
+function showMsg(text, type = 'info') {
+    msgEl.textContent = text;
+    msgEl.className   = 'message show ' + type;
+}
+function setLoading(v) { loader.classList.toggle('show', v); }
+
+function clearSafetyTimer() {
+    if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
+}
+
+/* ─── Camera helpers ────────────────────────────────────── */
+function stopStream() {
+    clearSafetyTimer();
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+    cameraReady = false;
+}
+
+function onCameraLive() {
+    if (cameraReady) return;
+    clearSafetyTimer();
+    cameraReady = true;
+    stateStart.style.display = 'none';
+    stateError.style.display = 'none';
+    video.style.display      = 'block';
+    faceGuide.style.display  = 'flex';
+    captureBtn.disabled      = false;
+    showMsg('✅ Camera ready — centre your face in the oval and tap Capture.', 'success');
+}
+
+function showCamError(title, sub, icon) {
+    icon = icon || '📷';
+    stopStream();
+    video.style.display      = 'none';
+    faceGuide.style.display  = 'none';
+    stateStart.style.display = 'none';
+    stateError.style.display = 'flex';
+    errorIcon.textContent    = icon;
+    errorTitle.textContent   = title;
+    errorSub.textContent     = sub;
+    captureBtn.disabled      = true;
+}
+
+/* ─── Camera init ───────────────────────────────────────── */
+async function initCamera() {
+    stopStream();
+    cameraReady = false;
+    captureBtn.disabled      = true;
+    video.style.display      = 'none';
+    faceGuide.style.display  = 'none';
+    stateStart.style.display = 'flex';
+    stateError.style.display = 'none';
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showCamError('Browser not supported',
+            'Please use Chrome or Safari on this device.', '🚫');
+        return;
+    }
+
+    /* Try to find the front camera by device label first (most reliable on Android) */
+    let frontDeviceId = null;
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams    = devices.filter(d => d.kind === 'videoinput');
+        const front   = cams.find(d => /front|user|selfie|facing front/i.test(d.label));
+        if (front && front.deviceId) frontDeviceId = front.deviceId;
+    } catch(_) {}
+
+    /* Build fallback constraint list */
+    const tryList = [];
+    if (frontDeviceId) {
+        tryList.push({ video: { deviceId: { exact: frontDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+        tryList.push({ video: { deviceId: { exact: frontDeviceId } } });
+    }
+    tryList.push({ video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+    tryList.push({ video: { facingMode: 'user' } });
+    tryList.push({ video: true });
+
+    let openedStream = null, lastErr = null;
+    for (const c of tryList) {
+        try { openedStream = await navigator.mediaDevices.getUserMedia(c); break; }
+        catch(e) { lastErr = e; if (e.name === 'NotAllowedError') break; }
+    }
+
+    if (!openedStream) {
+        const e = lastErr;
+        if (e && e.name === 'NotAllowedError')
+            showCamError('Camera access denied',
+                'Tap the camera icon in your browser bar, allow access, then tap Try Again.', '🔒');
+        else if (e && e.name === 'NotFoundError')
+            showCamError('No camera found', 'This device has no camera, or it is disabled.', '🚫');
+        else if (e && e.name === 'NotReadableError')
+            showCamError('Camera is busy', 'Another app is using the camera. Close it and tap Try Again.', '⚠️');
+        else
+            showCamError('Camera unavailable',
+                (e ? e.message : 'Unknown error') + ' — Tap Try Again.', '📷');
+        showMsg('Camera error — see message above.', 'error');
+        return;
+    }
+
+    stream          = openedStream;
+    video.srcObject = stream;
+    video.muted     = true;
+
+    video.oncanplay = function() { video.oncanplay = null; onCameraLive(); };
+    video.onplaying = function() { video.onplaying = null; onCameraLive(); };
+
+    try { await video.play(); } catch(_) {}
+
+    if (video.readyState >= 3) { onCameraLive(); return; }
+
+    safetyTimer = setTimeout(function() {
+        if (!cameraReady) {
+            if (video.videoWidth > 0) onCameraLive();
+            else showCamError('Video did not start',
+                'Camera opened but no frames appeared. Please refresh the page.', '⚠️');
+        }
+    }, 5000);
+}
+
+/* ─── Countdown then capture ────────────────────────────── */
+function runCountdown(from, callback) {
+    captureBtn.disabled = true;
+    let remaining = from;
+    countdownEl.textContent  = remaining;
+    countdownEl.style.display = 'flex';
+
+    const tick = setInterval(function() {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(tick);
+            countdownEl.style.display = 'none';
+            captureBtn.disabled = false;
+            callback();
+        } else {
+            countdownEl.textContent = remaining;
+        }
+    }, 1000);
+}
+
+/* ─── Capture & register ─────────────────────────────────── */
+function captureAndRegister() {
+    if (registered) { showMsg('Already registered! Tap "Register Again" to redo.', 'info'); return; }
+    if (!cameraReady || !video.videoWidth) {
+        showMsg('Camera not ready — please wait a moment.', 'error'); return;
+    }
+    runCountdown(3, doCapture);
+}
+
+function doCapture() {
+    /*
+     * Cap the canvas at 640×480 before encoding.
+     * This reduces the base64 upload from ~500 KB to ~60-100 KB,
+     * preventing the server-side buffer overflow that caused "Database error".
+     * 640×480 is fully sufficient for face recognition accuracy.
+     */
+    let srcW = video.videoWidth, srcH = video.videoHeight;
+    let w = srcW, h = srcH;
+    if (w > CAP_MAX_W) { h = Math.round(h * CAP_MAX_W / w); w = CAP_MAX_W; }
+    if (h > CAP_MAX_H) { w = Math.round(w * CAP_MAX_H / h); h = CAP_MAX_H; }
+
+    canvas.width  = w;
+    canvas.height = h;
+
+    /* Draw mirrored to match what the user sees */
+    ctx.save();
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, w, h);
+    ctx.restore();
+
+    canvas.toBlob(function(blob) {
+        if (!blob) { showMsg('Capture failed — try again.', 'error'); return; }
+
+        const previewUrl = URL.createObjectURL(blob);
+        previewImg.src   = previewUrl;
+        previewBox.style.display = 'block';
+
+        setLoading(true);
+
+        const reader = new FileReader();
+        reader.onloadend = async function() {
+            const base64 = reader.result.split(',')[1];
+
+            const body = new URLSearchParams({
+                prn:        currentPrn,
+                status:     '1',
+                face_image: base64
+            });
+
+            let success = false;
+            try {
+                const res = await fetch('/api/update_face_status', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body:    body.toString()
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    success = json.success === true;
+                    showMsg(
+                        success
+                            ? '✅ Face registered! You can now mark attendance.'
+                            : 'Registration failed: ' + (json.message || 'Unknown error'),
+                        success ? 'success' : 'error'
+                    );
+                } else {
+                    showMsg('Server error: ' + res.status + ' — please try again.', 'error');
+                }
+            } catch(e) {
+                showMsg('Network error: ' + e.message, 'error');
+            }
+
+            if (success) {
+                captureBtn.disabled     = true;
+                retryBtn.style.display  = 'inline-block';
+                registered              = true;
+                faceGuide.style.display = 'none';
+            }
+
+            setLoading(false);
+            URL.revokeObjectURL(previewUrl);
+        };
+        reader.readAsDataURL(blob);
+
+    }, 'image/jpeg', 0.82);   /* 0.82 quality — sharp enough, keeps file small */
+}
+
+/* ─── Retry registration ─────────────────────────────────── */
+function retryRegistration() {
+    registered               = false;
+    retryBtn.style.display   = 'none';
+    previewBox.style.display = 'none';
+    previewImg.src           = '';
+    showMsg('Ready to capture again.', 'info');
+    if (!cameraReady) initCamera();
+    else {
+        captureBtn.disabled     = false;
+        faceGuide.style.display = 'flex';
+    }
+}
+
+/* ─── Init ───────────────────────────────────────────────── */
+function init() {
+    /* Show notice if opened over HTTP on a network (non-localhost) address */
+    if (location.protocol === 'http:' &&
+        location.hostname !== 'localhost' &&
+        location.hostname !== '127.0.0.1') {
+        document.getElementById('httpNotice').style.display = 'block';
+    }
+
+    const p = new URLSearchParams(window.location.search);
+    currentPrn = p.get('prn') || '';
+    document.getElementById('prnText').textContent   = currentPrn       || '—';
+    document.getElementById('nameText').textContent  = p.get('name')  || '—';
+    document.getElementById('emailText').textContent = p.get('email') || '—';
+
+    if (!currentPrn) {
+        showMsg('⚠️ No student info in URL. Add ?prn=&name=&email= to the link.', 'warning');
+    }
+
+    document.getElementById('retryCamBtn').onclick = initCamera;
+    captureBtn.onclick = captureAndRegister;
+    retryBtn.onclick   = retryRegistration;
+
+    window.addEventListener('beforeunload', stopStream);
+
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && !cameraReady && stream === null) initCamera();
+    });
+
+    initCamera();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -2,816 +2,876 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Attendance System - Teacher Portal</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Smart Attendance System – Teacher Portal</title>
 <style>
-
-body{
-font-family:Arial, sans-serif;
-background:#f4f6fa;
-margin:0;
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f8; margin: 0; padding: 0;
 }
 
-header{
-background:#4a6cf7;
-color:white;
-padding:20px;
-font-size:24px;
+header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white; padding: 18px 24px;
+    font-size: 22px; font-weight: 600;
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.live-badge {
+    background: rgba(255,255,255,0.18); padding: 6px 14px;
+    border-radius: 40px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+}
+.live-dot {
+    width: 10px; height: 10px; background: #2ecc71;
+    border-radius: 50%; animation: pulse 1.5s infinite;
+    box-shadow: 0 0 6px #2ecc71;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.15)} }
+
+.container { width: 96%; max-width: 1400px; margin: 24px auto; }
+
+.tabs { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tab-btn {
+    padding: 11px 22px; border: none;
+    background: #e2e6ea; cursor: pointer;
+    border-radius: 30px; font-weight: 600;
+    transition: all .2s; color: #2c3e50;
+}
+.tab-btn.active { background: #2c3e8f; color: white; box-shadow: 0 2px 8px rgba(44,62,143,.3); }
+.tab {
+    display: none; background: white;
+    padding: 24px 28px; border-radius: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,.05);
+    margin-top: 16px;
+}
+.tab.active { display: block; animation: fadeIn .25s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 4px; }
+input, textarea, select {
+    width: 100%; padding: 11px 14px;
+    margin-top: 4px; margin-bottom: 16px;
+    border: 1px solid #cbd5e1; border-radius: 14px;
+    font-size: 14px; font-family: inherit; transition: .2s;
+}
+input:focus, textarea:focus, select:focus {
+    outline: none; border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.2);
 }
 
-.container{
-width:95%;
-margin:auto;
-margin-top:20px;
+button {
+    padding: 10px 20px; background: #2c3e8f;
+    color: white; border: none; cursor: pointer;
+    border-radius: 40px; font-weight: 500;
+    font-family: inherit; transition: .2s;
 }
+button:hover { background: #1e2a6e; transform: translateY(-1px); }
+button:disabled { background: #9ba8c0; cursor: not-allowed; transform: none; }
 
-.tabs{
-margin-bottom:20px;
+.btn-delete  { background:#dc2626; padding:6px 14px; font-size:13px; border-radius:30px; }
+.btn-delete:hover { background:#b91c1c; transform:none; }
+.btn-view    { background:#10b981; padding:6px 14px; font-size:13px; border-radius:30px; margin-right:4px; }
+.btn-view:hover { background:#059669; }
+.btn-email-single { background:#f59e0b; padding:6px 14px; font-size:13px; border-radius:30px; white-space:nowrap; }
+.btn-email-single:hover { background:#d97706; }
+.btn-email-all { background:#3b82f6; padding:9px 20px; font-size:14px; font-weight:600; border-radius:40px; }
+.btn-email-all:hover { background:#2563eb; }
+.btn-mark    { padding:5px 12px; border-radius:30px; font-size:12px; margin:2px; }
+.btn-mark-present { background:#10b981; }
+.btn-mark-absent  { background:#ef4444; }
+
+.table-wrapper {
+    overflow-x: auto; border-radius: 18px;
+    margin-top: 18px; border: 1px solid #e2e8f0;
 }
+table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; min-width: 560px; }
+th { background: #f8fafc; padding: 13px 12px; text-align: left; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; }
+td { padding: 11px 12px; border-bottom: 1px solid #edf2f7; vertical-align: middle; }
+tr:hover td { background: #fafcff; }
 
-.tab-btn{
-padding:10px 20px;
-border:none;
-background:#545454;
-margin-right:5px;
-cursor:pointer;
-border-radius:4px 4px 0 0;
+.status-badge  { display:inline-block; padding:4px 12px; border-radius:30px; font-size:12px; font-weight:600; }
+.status-present { background:#d1fae5; color:#065f46; }
+.status-absent  { background:#fee2e2; color:#991b1b; }
+
+.stat-card {
+    background: linear-gradient(145deg,#fff,#f8fafc);
+    border-radius: 24px; padding: 20px 30px;
+    text-align: center; cursor: pointer;
+    transition: all .2s; border: 1px solid #eef2f8;
+    min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,.04);
 }
+.stat-card:hover { transform: translateY(-3px); border-color: #c8dcf5; }
+.stat-num   { font-size: 42px; font-weight: 800; color: #1e3c72; line-height: 1; }
+.stat-label { font-size: 14px; color: #475569; margin-top: 8px; }
 
-.tab-btn.active{
-background:#4a6cf7;
-color:white;
+.message { padding: 13px 18px; border-radius: 18px; margin: 14px 0; font-size: 14px; }
+.success { background:#e0f2fe; color:#075985; border-left:5px solid #0ea5e9; }
+.error   { background:#fee2e2; color:#991b1b; border-left:5px solid #ef4444; }
+.info    { background:#e6f7e6; color:#2e7d32; border-left:5px solid #22c55e; }
+
+.flex-between { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; }
+.search-group { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+.search-group input { flex:2; min-width:200px; margin-bottom:0; }
+.att-sub { width:100%; background:#fefefe; border-radius:18px; overflow-x:auto; }
+.att-sub th { background:#f1f5f9; font-size:13px; }
+
+/* ── Attendance summary card ── */
+.att-summary {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    background: #f8fafc; border-radius: 18px;
+    padding: 18px 22px; margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
 }
+.att-summary-item { flex: 1; min-width: 120px; text-align: center; }
+.att-summary-num { font-size: 32px; font-weight: 800; line-height: 1; }
+.att-summary-num.green  { color: #065f46; }
+.att-summary-num.red    { color: #991b1b; }
+.att-summary-num.blue   { color: #1e3c72; }
+.att-summary-num.orange { color: #92400e; }
+.att-summary-label { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 
-.tab{
-display:none;
-background:white;
-padding:20px;
-border-radius:5px;
+.progress-bar-wrap { background: #e2e8f0; border-radius: 99px; height: 10px; margin: 12px 0 4px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; background: #10b981; }
+.progress-bar-fill.warn  { background: #f59e0b; }
+.progress-bar-fill.danger { background: #ef4444; }
+
+#loadingOverlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    z-index: 9999; align-items: center; justify-content: center;
+    flex-direction: column; color: white;
 }
-
-.tab.active{
-display:block;
+#loadingOverlay.show { display: flex; }
+.spinner {
+    width: 48px; height: 48px;
+    border: 5px solid rgba(255,255,255,.3);
+    border-top-color: white; border-radius: 50%;
+    animation: spin .7s linear infinite;
 }
+@keyframes spin { to{transform:rotate(360deg)} }
 
-input,textarea{
-width:100%;
-padding:10px;
-margin-top:5px;
-margin-bottom:15px;
-border:1px solid #ccc;
-border-radius:4px;
-box-sizing:border-box;
+.toast-notification {
+    position: fixed; bottom: 22px; right: 22px;
+    background: #1f2937; color: white;
+    padding: 12px 22px; border-radius: 40px;
+    font-size: 14px; z-index: 1100;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    animation: fadeIn .3s ease;
 }
-
-button{
-padding:10px 20px;
-background:#4a6cf7;
-color:white;
-border:none;
-cursor:pointer;
-border-radius:4px;
-}
-
-button:hover{
-background:#3a56d8;
-}
-
-/* Delete button style */
-.btn-delete{
-padding:5px 12px;
-background:#e74c3c;
-color:white;
-border:none;
-cursor:pointer;
-border-radius:4px;
-font-size:13px;
-}
-
-.btn-delete:hover{
-background:#c0392b;
-}
-
-/* View attendance button */
-.btn-view{
-padding:5px 12px;
-background:#27ae60;
-color:white;
-border:none;
-cursor:pointer;
-border-radius:4px;
-font-size:13px;
-margin-right:5px;
-}
-
-.btn-view:hover{
-background:#219150;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px;
-}
-
-th,td{
-border:1px solid #ccc;
-padding:10px;
-vertical-align:middle;
-}
-
-th{
-background:#f2f2f2;
-}
-
-.message{
-padding:10px;
-margin-top:10px;
-border-radius:4px;
-}
-
-.success{background:#d4edda;color:#155724;}
-.error{background:#f8d7da;color:#721c24;}
-.info{background:#d1ecf1;color:#0c5460;}
-
-/* Spinner overlay */
-#loadingOverlay{
-display:none;
-position:fixed;
-top:0;left:0;right:0;bottom:0;
-background:rgba(0,0,0,0.35);
-z-index:9999;
-align-items:center;
-justify-content:center;
-flex-direction:column;
-color:white;
-font-size:18px;
-}
-
-#loadingOverlay.show{
-display:flex;
-}
-
-.spinner{
-width:50px;height:50px;
-border:6px solid #ffffff44;
-border-top-color:#fff;
-border-radius:50%;
-animation:spin 0.8s linear infinite;
-margin-bottom:15px;
-}
-
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Attendance sub-table */
-.att-sub{
-margin-top:8px;
-background:#f9f9f9;
-}
-
-/* Dashboard stat cards */
-.stat-card{
-background:#4a6cf7;
-color:white;
-padding:20px 30px;
-border-radius:8px;
-cursor:pointer;
-min-width:150px;
-text-align:center;
-transition:background 0.2s;
-user-select:none;
-}
-
-.stat-card:hover{
-background:#3a56d8;
-}
-
-.stat-num{
-font-size:36px;
-font-weight:bold;
-line-height:1;
-}
-
-.stat-label{
-font-size:14px;
-margin-top:6px;
-opacity:0.9;
-}
-
-.stat-hint{
-font-size:11px;
-margin-top:4px;
-opacity:0.7;
-}
-
-/* Dashboard sessions preview table */
-#dashboardSessions table{
-width:100%;
-border-collapse:collapse;
-margin-top:8px;
-}
-
-#dashboardSessions th,
-#dashboardSessions td{
-border:1px solid #ccc;
-padding:8px 10px;
-}
-
-#dashboardSessions th{
-background:#f2f2f2;
-}
-
-#dashboardSessions .btn-goto{
-padding:4px 10px;
-background:#4a6cf7;
-color:white;
-border:none;
-cursor:pointer;
-border-radius:4px;
-font-size:12px;
-}
-
-#dashboardSessions .btn-goto:hover{
-background:#3a56d8;
-}
-
 </style>
 </head>
-
 <body>
 
-<!-- Loading overlay shown while emails are sending -->
 <div id="loadingOverlay">
-  <div class="spinner"></div>
-  <span id="loadingMsg">Sending emails to students, please wait…</span>
+    <div class="spinner"></div>
+    <span id="loadingMsg" style="margin-top:12px;">Processing…</span>
 </div>
 
 <header>
-  Smart Attendance System - Teacher Portal
+    <span>Smart Attendance System – Teacher Portal</span>
+    <div class="live-badge">
+        <span class="live-dot"></span>
+        <span>Live Auto-Refresh ON</span>
+    </div>
 </header>
 
 <div class="container">
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="openTab('dashboard',this)">Dashboard</button>
-  <button class="tab-btn" onclick="openTab('createSession',this)">Create Session</button>
-  <button class="tab-btn" onclick="openTab('registerStudents',this)">Register Students</button>
-  <button class="tab-btn" onclick="openTab('viewStudents',this); loadStudents()">All Students</button>
-  <button class="tab-btn" onclick="openTab('sessions',this); loadSessions()">Sessions</button>
-  <button class="tab-btn" onclick="openTab('searchAttendance',this)">Search Attendance</button>
-</div>
-
-<!-- ==================== DASHBOARD ==================== -->
-<div id="dashboard" class="tab active">
-<h3>Statistics</h3>
-  <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:25px">
-
-    <div class="stat-card" onclick="switchTab('viewStudents'); loadStudents()">
-      <div class="stat-num" id="statStudents">0</div>
-      <div class="stat-label">Total Students</div>
-      <div class="stat-hint">Click to view all</div>
+    <div class="tabs">
+        <button class="tab-btn active"  onclick="openTab('dashboard',this)">Dashboard</button>
+        <button class="tab-btn"         onclick="openTab('createSession',this)">Create Session</button>
+        <button class="tab-btn"         onclick="openTab('registerStudents',this)">Register Students</button>
+        <button class="tab-btn"         onclick="openTab('viewStudents',this);loadStudents()">All Students</button>
+        <button class="tab-btn"         onclick="openTab('sessions',this);loadSessions()">Sessions</button>
+        <button class="tab-btn"         onclick="openTab('searchAttendance',this)">Search Attendance</button>
     </div>
 
-    <div class="stat-card" onclick="switchTab('sessions'); loadSessions()">
-      <div class="stat-num" id="statSessions">0</div>
-      <div class="stat-label">Total Sessions</div>
-      <div class="stat-hint">Click to view all</div>
+    <!-- ═══ DASHBOARD ═══════════════════════════════════════════════════════ -->
+    <div id="dashboard" class="tab active">
+        <h3 style="margin-top:0">Statistics Overview</h3>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:28px;">
+            <div class="stat-card" onclick="switchTab('viewStudents');loadStudents()">
+                <div class="stat-num" id="statStudents">0</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card" onclick="switchTab('sessions');loadSessions()">
+                <div class="stat-num" id="statSessions">0</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card" onclick="switchTab('searchAttendance')">
+                <div class="stat-num" id="statAttendance">0</div>
+                <div class="stat-label">Attendance Records</div>
+            </div>
+        </div>
+        <h3>Recent Sessions</h3>
+        <div id="dashboardSessions" class="table-wrapper"></div>
     </div>
 
-    <div class="stat-card" onclick="switchTab('searchAttendance')">
-      <div class="stat-num" id="statAttendance">0</div>
-      <div class="stat-label">Total Attendance</div>
-      <div class="stat-hint">Click to view all</div>
+    <!-- ═══ CREATE SESSION ══════════════════════════════════════════════════ -->
+    <div id="createSession" class="tab">
+        <h3>Create New Session</h3>
+        <label>Teacher Name</label>
+        <input type="text" id="teacher" placeholder="Prof. Dipti Gaikwad">
+
+        <label>Session Name / Subject</label>
+        <input type="text" id="session" placeholder="ADS Lecture – Unit 3">
+
+        <label>Date</label>
+        <input type="date" id="sessdate">
+
+        <label>Start Time (HH:MM)</label>
+        <input type="text" id="start" placeholder="12:30">
+
+        <label>End Time (HH:MM)</label>
+        <input type="text" id="end" placeholder="13:30">
+
+        <button onclick="createSession()">Create Session &amp; Send Emails</button>
+        <div id="sessionMessage"></div>
     </div>
 
-  </div>
+    <!-- ═══ REGISTER STUDENTS ═══════════════════════════════════════════════ -->
+    <div id="registerStudents" class="tab">
+        <h3>Manual Student Registration</h3>
+        <label>PRN</label>
+        <input type="text" id="manualPrn" placeholder="1252030027">
 
-  <h3>Recent Sessions</h3>
-  <div id="dashboardSessions">Loading...</div>
+        <label>Full Name</label>
+        <input type="text" id="manualName" placeholder="Akash Khurd">
+
+        <label>Email Address</label>
+        <input type="email" id="manualEmail" placeholder="akash.khurd@example.com">
+
+        <button onclick="registerStudentManual()">Add Student</button>
+        <div id="manualMessage"></div>
+
+        <h3 style="margin-top:28px;">Bulk Upload (CSV)</h3>
+        <p style="font-size:13px;color:#666;">Expected columns: <code>prn, name, email</code></p>
+        <input type="file" id="csvFile" accept=".csv"
+               style="border:none;border-radius:0;padding:0;margin-bottom:10px;">
+        <button onclick="uploadCSV()">Upload &amp; Register</button>
+        <div id="csvMessage"></div>
+    </div>
+
+    <!-- ═══ ALL STUDENTS ════════════════════════════════════════════════════ -->
+    <div id="viewStudents" class="tab">
+        <div class="flex-between">
+            <h3>Student Directory</h3>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn-email-all" onclick="sendFaceRegEmailToAll()">
+                    📧 Send Face-Reg Email to ALL
+                </button>
+                <button onclick="loadStudents()" style="background:#475569;">↻ Refresh</button>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <div id="studentsTable">Loading students…</div>
+        </div>
+    </div>
+
+    <!-- ═══ SESSIONS ════════════════════════════════════════════════════════ -->
+    <div id="sessions" class="tab">
+        <div class="flex-between">
+            <h3>All Class Sessions</h3>
+            <button onclick="loadSessions()">↻ Refresh</button>
+        </div>
+        <div id="sessionsList"></div>
+    </div>
+
+    <!-- ═══ SEARCH ATTENDANCE ═══════════════════════════════════════════════ -->
+    <div id="searchAttendance" class="tab">
+        <h3>Search Attendance by PRN</h3>
+        <div class="search-group">
+            <input type="text" id="searchPrn" placeholder="e.g. 1252030027"
+                   onkeydown="if(event.key==='Enter')searchAttendance()">
+            <button onclick="searchAttendance()">Search</button>
+        </div>
+
+        <!-- Overall attendance summary (shown after a successful search) -->
+        <div id="attendanceSummary" style="display:none; margin-top:20px;"></div>
+
+        <!-- Detailed records table -->
+        <div id="attendanceResults" style="margin-top:12px;"></div>
+    </div>
 </div>
-
-<!-- ==================== CREATE SESSION ==================== -->
-<div id="createSession" class="tab">
-  <h3>Create Session</h3>
-
-  <form id="sessionForm">
-    Teacher Name   <input type="text" id="teacher"  required>
-    Session Name   <input type="text" id="session"  required>
-    Date           <input type="date" id="sessdate" required>
-    Start Time (HH:MM) <input type="text" id="start" placeholder="10:00" required>
-    End Time   (HH:MM) <input type="text" id="end"   placeholder="11:00" required>
-    <button type="submit">Create Session &amp; Send Emails</button>
-  </form>
-
-  <div id="sessionMessage"></div>
-</div>
-
-<!-- ==================== REGISTER STUDENTS ==================== -->
-<div id="registerStudents" class="tab">
-  <h3>Add Student</h3>
-
-  <form id="manualStudentForm">
-    PRN   <input type="text"  id="manualPrn"   required>
-    Name  <input type="text"  id="manualName"  required>
-    Email <input type="email" id="manualEmail" required>
-    <button type="submit">Add Student</button>
-  </form>
-
-  <div id="manualMessage"></div>
-
-  <h3>Upload CSV</h3>
-  <input type="file" id="csvFile" accept=".csv">
-  <button onclick="uploadCSV()">Upload CSV</button>
-  <div id="csvMessage"></div>
-</div>
-
-<!-- ==================== ALL STUDENTS ==================== -->
-<div id="viewStudents" class="tab">
-  <h3>All Students</h3>
-  <button onclick="loadStudents()">Refresh</button>
-  <div id="studentsTable"></div>
-</div>
-
-<!-- ==================== SESSIONS ==================== -->
-<div id="sessions" class="tab">
-  <h3>All Sessions</h3>
-  <button onclick="loadSessions()">Refresh</button>
-  <div id="sessionsList"></div>
-</div>
-
-<!-- ==================== SEARCH ATTENDANCE ==================== -->
-<div id="searchAttendance" class="tab">
-  <h3>Search Attendance by PRN</h3>
-  <input type="text" id="searchPrn" placeholder="Enter PRN">
-  <button onclick="searchAttendance()">Search</button>
-  <div id="attendanceResults"></div>
-</div>
-
-</div><!-- end .container -->
 
 <script>
+/* ══════════════════════════════════════════════════════════════════════════
+   Utility helpers
+══════════════════════════════════════════════════════════════════════════ */
+const openAttendanceSessions = new Set();
+let autoRefreshInterval = null, lastStatsHash = '', isRefreshing = false;
 
-/* ===================== TAB SWITCH ===================== */
+function showToast(msg, ok=true) {
+    const t = document.createElement('div');
+    t.className = 'toast-notification';
+    t.textContent = (ok ? '✓ ' : '⚠ ') + msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+}
+function showLoading(msg) {
+    document.getElementById('loadingMsg').textContent = msg;
+    document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
 
-function openTab(tabId, btn){
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
-  document.getElementById(tabId).classList.add("active")
-  btn.classList.add("active")
+function escHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, m =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-/* Switch tab programmatically (from dashboard card clicks) */
-function switchTab(tabId){
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"))
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
-  document.getElementById(tabId).classList.add("active")
-  /* highlight the matching tab button */
-  document.querySelectorAll(".tab-btn").forEach(b => {
-    if(b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${tabId}'`))
-      b.classList.add("active")
-  })
+function showMsg(id, msg, ok) {
+    const el = document.getElementById(id);
+    if (el) { el.className = 'message ' + (ok ? 'success' : 'error'); el.textContent = msg; }
 }
 
-
-/* ===================== TIME HELPERS ===================== */
-
-function timeToMinutes(time){
-  let p = time.split(":")
-  return parseInt(p[0]) * 60 + parseInt(p[1])
+function timeToMinutes(t) {
+    const p = t.split(':'); return parseInt(p[0])*60 + parseInt(p[1]||0);
 }
 
-
-/* ===================== LOADING OVERLAY ===================== */
-
-function showLoading(msg){
-  document.getElementById("loadingMsg").innerText = msg || "Please wait…"
-  document.getElementById("loadingOverlay").classList.add("show")
+/* ══════════════════════════════════════════════════════════════════════════
+   Tab switching
+══════════════════════════════════════════════════════════════════════════ */
+function openTab(id, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (btn) btn.classList.add('active');
+}
+function switchTab(id) {
+    const btn = [...document.querySelectorAll('.tab-btn')]
+        .find(b => b.getAttribute('onclick')?.includes(`'${id}'`));
+    openTab(id, btn || null);
 }
 
-function hideLoading(){
-  document.getElementById("loadingOverlay").classList.remove("show")
+/* ══════════════════════════════════════════════════════════════════════════
+   Auto-refresh
+══════════════════════════════════════════════════════════════════════════ */
+async function checkForChanges() {
+    if (isRefreshing) return;
+    try {
+        const r = await fetch('/api/dashboard_stats');
+        const s = await r.json();
+        const hash = `${s.total_students}|${s.total_sessions}|${s.total_attendance}`;
+        if (lastStatsHash && lastStatsHash !== hash) {
+            showToast('Data updated – refreshing views');
+            isRefreshing = true;
+            await loadDashboard();
+            const active = document.querySelector('.tab.active')?.id;
+            if (active === 'viewStudents') await loadStudents();
+            else if (active === 'sessions') await loadSessions();
+            isRefreshing = false;
+        }
+        lastStatsHash = hash;
+    } catch(e) {}
+}
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(checkForChanges, 3500);
+}
+window.addEventListener('beforeunload', () => clearInterval(autoRefreshInterval));
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Create session
+══════════════════════════════════════════════════════════════════════════ */
+async function createSession() {
+    const teacher = document.getElementById('teacher').value.trim();
+    const sess    = document.getElementById('session').value.trim();
+    const date    = document.getElementById('sessdate').value;
+    const startV  = document.getElementById('start').value.trim();
+    const endV    = document.getElementById('end').value.trim();
+
+    if (!teacher || !sess || !date || !startV || !endV) {
+        showMsg('sessionMessage', 'All fields are required.', false); return;
+    }
+    const start = timeToMinutes(startV), end = timeToMinutes(endV);
+    if (end <= start) { showMsg('sessionMessage', 'End time must be after start time.', false); return; }
+
+    const data = `teacher=${encodeURIComponent(teacher)}`
+        + `&session=${encodeURIComponent(sess)}`
+        + `&date=${encodeURIComponent(date)}`
+        + `&start=${start}&end=${end}`;
+
+    const r = await fetch('/api/create_session', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: data
+    });
+    const res = await r.json();
+    if (!res.success) { showMsg('sessionMessage', res.message, false); return; }
+
+    const session_id = res.session_id;
+    showMsg('sessionMessage', `Session #${session_id} created. Sending emails to all students…`, true);
+    showLoading('Sending session emails to all students…');
+
+    try {
+        const er   = await fetch(`/api/send_session_emails?session_id=${session_id}`);
+        const eres = await er.json();
+        hideLoading();
+        showMsg('sessionMessage',
+            `Session #${session_id} created. ${eres.message || (eres.success ? 'Emails sent.' : 'Email error.')}`,
+            eres.success);
+    } catch(err) {
+        hideLoading();
+        showMsg('sessionMessage', `Session created but email error: ${err.message}`, false);
+    }
+
+    ['teacher','session','start','end'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sessdate').value = new Date().toISOString().split('T')[0];
+    await loadDashboard();
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Register students
+══════════════════════════════════════════════════════════════════════════ */
+async function registerStudentManual() {
+    const prn   = document.getElementById('manualPrn').value.trim();
+    const name  = document.getElementById('manualName').value.trim();
+    const email = document.getElementById('manualEmail').value.trim();
 
-/* ===================== SHOW MESSAGE ===================== */
+    if (!prn || !name || !email) { showMsg('manualMessage','All fields required.',false); return; }
 
-function showMessage(id, msg, success){
-  let el = document.getElementById(id)
-  el.className = "message " + (success ? "success" : "error")
-  el.innerText = msg || (success ? "Done." : "Something went wrong.")
+    const r = await fetch('/api/register_student_manual', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `prn=${encodeURIComponent(prn)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
+    });
+    const res = await r.json();
+    showMsg('manualMessage', res.message, res.success);
+    if (res.success) {
+        ['manualPrn','manualName','manualEmail'].forEach(id => document.getElementById(id).value='');
+        await loadDashboard();
+    }
 }
 
-
-/* ===================== CREATE SESSION + SEND EMAILS ===================== */
-
-document.getElementById("sessionForm").onsubmit = async function(e){
-  e.preventDefault()
-
-  let teacher  = document.getElementById("teacher").value.trim()
-  let session  = document.getElementById("session").value.trim()
-  let sessdate = document.getElementById("sessdate").value   // YYYY-MM-DD
-  let start    = timeToMinutes(document.getElementById("start").value)
-  let end      = timeToMinutes(document.getElementById("end").value)
-
-  if(end <= start){
-    showMessage("sessionMessage","End time must be after start time.", false)
-    return
-  }
-
-  if(!sessdate){
-    showMessage("sessionMessage","Please select a date.", false)
-    return
-  }
-
-  /* 1. Create session */
-  let data = `teacher=${encodeURIComponent(teacher)}&session=${encodeURIComponent(session)}&start=${start}&end=${end}&date=${encodeURIComponent(sessdate)}`
-
-  let r   = await fetch("/api/create_session",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
-  let res = await r.json()
-
-  if(!res.success){
-    showMessage("sessionMessage", res.message, false)
-    return
-  }
-
-  let session_id = res.session_id
-  showMessage("sessionMessage", `Session #${session_id} created. Sending emails…`, true)
-
-  /* 2. Trigger email sending (runs send_emails.py via server) */
-  showLoading(`Sending emails for session #${session_id}…`)
-
-  try{
-    let er   = await fetch(`/api/send_session_emails?session_id=${session_id}`)
-    let eres = await er.json()
-    hideLoading()
-    showMessage("sessionMessage",
-      `Session #${session_id} created. ${eres.message || "Emails sent."}`,
-      eres.success)
-  } catch(err){
-    hideLoading()
-    showMessage("sessionMessage",
-      `Session #${session_id} created. Email sending failed: ${err.message}`, false)
-  }
-
-  loadDashboard()
+async function uploadCSV() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) { showMsg('csvMessage','Please select a CSV file.',false); return; }
+    const text = await file.text();
+    const r = await fetch('/api/register_students', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `csv=${encodeURIComponent(text)}`
+    });
+    const res = await r.json();
+    showMsg('csvMessage', res.message, res.success);
+    if (res.success) await loadDashboard();
 }
 
-
-/* ===================== REGISTER STUDENT ===================== */
-
-document.getElementById("manualStudentForm").onsubmit = async function(e){
-  e.preventDefault()
-
-  let prn   = document.getElementById("manualPrn").value.trim()
-  let name  = document.getElementById("manualName").value.trim()
-  let email = document.getElementById("manualEmail").value.trim()
-
-  let data = `prn=${encodeURIComponent(prn)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
-
-  let r   = await fetch("/api/register_student_manual",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
-  let res = await r.json()
-
-  showMessage("manualMessage", res.message, res.success)
-  if(res.success) document.getElementById("manualStudentForm").reset()
+/* ══════════════════════════════════════════════════════════════════════════
+   Face-reg email helpers
+══════════════════════════════════════════════════════════════════════════ */
+async function sendFaceRegEmail(prn, name, email) {
+    if (!confirm(`Send face-registration invitation to ${name} (${email})?`)) return;
+    showLoading(`Sending to ${name}…`);
+    try {
+        const r = await fetch(
+            `/api/send_face_reg_email?prn=${encodeURIComponent(prn)}`
+            + `&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
+        );
+        const res = await r.json();
+        hideLoading();
+        showToast(res.success ? `Email sent to ${name}` : `Failed: ${res.message}`, res.success);
+    } catch(e) { hideLoading(); showToast(`Error: ${e.message}`, false); }
 }
 
+async function sendFaceRegEmailToAll() {
+    showLoading('Fetching student list…');
+    let students = [];
+    try {
+        const r = await fetch('/api/get_all_students');
+        students = await r.json();
+        hideLoading();
+        if (!students.length) { showToast('No students registered.', false); return; }
+        if (!confirm(`Send face-registration email to ALL ${students.length} students?`)) return;
 
-/* ===================== CSV UPLOAD ===================== */
-
-async function uploadCSV(){
-  let file = document.getElementById("csvFile").files[0]
-  if(!file){ showMessage("csvMessage","Please select a CSV file.", false); return }
-
-  let text = await file.text()
-  let data = `csv=${encodeURIComponent(text)}`
-
-  let r   = await fetch("/api/register_students",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data})
-  let res = await r.json()
-
-  showMessage("csvMessage", res.message, res.success)
+        showLoading(`Sending to ${students.length} students…`);
+        let ok=0, fail=0;
+        for (const s of students) {
+            try {
+                const r = await fetch(
+                    `/api/send_face_reg_email?prn=${encodeURIComponent(s.prn)}`
+                    + `&name=${encodeURIComponent(s.name)}&email=${encodeURIComponent(s.email)}`
+                );
+                const d = await r.json();
+                d.success ? ok++ : fail++;
+            } catch(e) { fail++; }
+            await new Promise(r => setTimeout(r, 150));
+        }
+        hideLoading();
+        showToast(`Face-reg emails: ${ok} sent, ${fail} failed.`, ok > 0);
+    } catch(e) { hideLoading(); showToast(`Error: ${e.message}`, false); }
 }
 
-
-/* ===================== LOAD STUDENTS ===================== */
-
-async function loadStudents(){
-  let r        = await fetch("/api/get_all_students")
-  let students = await r.json()
-
-  if(students.length === 0){
-    document.getElementById("studentsTable").innerHTML = "<p>No students registered.</p>"
-    return
-  }
-
-  let html = `<table>
-    <tr><th>PRN</th><th>Name</th><th>Email</th><th>Action</th></tr>`
-
-  students.forEach(s => {
-    html += `<tr>
-      <td>${escHtml(s.prn)}</td>
-      <td>${escHtml(s.name)}</td>
-      <td>${escHtml(s.email)}</td>
-      <td>
-        <button class="btn-delete" onclick="deleteStudent('${escHtml(s.prn)}')">
-          🗑 Delete
-        </button>
-      </td>
-    </tr>`
-  })
-
-  html += "</table>"
-  document.getElementById("studentsTable").innerHTML = html
+/* ══════════════════════════════════════════════════════════════════════════
+   Load students table
+══════════════════════════════════════════════════════════════════════════ */
+async function loadStudents() {
+    const r = await fetch('/api/get_all_students');
+    const students = await r.json();
+    const el = document.getElementById('studentsTable');
+    if (!students.length) {
+        el.innerHTML = "<div class='message info'>No students registered yet.</div>"; return;
+    }
+    let html = `<table>
+        <thead><tr>
+            <th>PRN</th><th>Full Name</th><th>Email</th>
+            <th>Face Registration</th><th>Actions</th>
+        </tr></thead><tbody>`;
+    for (const s of students) {
+        html += `<tr>
+            <td>${escHtml(s.prn)}</td>
+            <td><strong>${escHtml(s.name)}</strong></td>
+            <td>${escHtml(s.email)}</td>
+            <td>
+                <button class="btn-email-single"
+                    onclick="sendFaceRegEmail('${escHtml(s.prn)}','${escHtml(s.name)}','${escHtml(s.email)}')">
+                    📧 Send Email
+                </button>
+            </td>
+            <td>
+                <button class="btn-delete"
+                    onclick="deleteStudent('${escHtml(s.prn)}')">Delete</button>
+            </td>
+        </tr>`;
+    }
+    html += `</tbody></table>`;
+    el.innerHTML = html;
 }
 
-
-/* ===================== DELETE STUDENT ===================== */
-
-async function deleteStudent(prn){
-  if(!confirm(`Delete student ${prn}? This will also remove their attendance records.`)) return
-
-  let r   = await fetch("/api/delete_student",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`prn=${encodeURIComponent(prn)}`
-  })
-  let res = await r.json()
-
-  alert(res.message)
-  loadStudents()
-  loadDashboard()
+async function deleteStudent(prn) {
+    if (!confirm(`Delete student ${prn}? This also removes their attendance history.`)) return;
+    const r = await fetch('/api/delete_student', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `prn=${encodeURIComponent(prn)}`
+    });
+    const res = await r.json();
+    showToast(res.message, res.success);
+    await loadStudents();
+    await loadDashboard();
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Load sessions
+══════════════════════════════════════════════════════════════════════════ */
+async function loadSessions() {
+    const el = document.getElementById('sessionsList');
+    el.innerHTML = "<div class='message info'>Loading sessions…</div>";
+    let sessions;
+    try {
+        const r = await fetch('/api/get_sessions');
+        sessions = await r.json();
+    } catch(e) {
+        el.innerHTML = `<div class='message error'>Failed: ${e.message}</div>`; return;
+    }
+    if (!sessions.length) {
+        el.innerHTML = "<div class='message info'>No sessions created yet.</div>"; return;
+    }
 
-/* ===================== LOAD SESSIONS ===================== */
+    let html = `<div class="table-wrapper"><table>
+        <thead><tr>
+            <th>ID</th><th>Session</th><th>Teacher</th>
+            <th>Date</th><th>Start</th><th>End</th><th>Actions</th>
+        </tr></thead><tbody>`;
 
-async function loadSessions(){
-  let container = document.getElementById("sessionsList")
-  container.innerHTML = "<p>Loading…</p>"
+    for (const s of sessions) {
+        const dateDisplay = (s.date && s.date !== 'null' && s.date !== '0000-00-00') ? escHtml(s.date) : '—';
+        const isOpen = openAttendanceSessions.has(s.id);
+        html += `<tr>
+            <td>${s.id}</td>
+            <td><strong>${escHtml(s.session)}</strong></td>
+            <td>${escHtml(s.teacher)}</td>
+            <td>${dateDisplay}</td>
+            <td>${escHtml(s.start)}</td>
+            <td>${escHtml(s.end)}</td>
+            <td>
+                <button class="btn-view" id="btn_view_${s.id}"
+                    onclick="toggleAttendanceList(${s.id},this)">${isOpen?'Hide':'View/Manage'}</button>
+                <button class="btn-delete" onclick="deleteAttendance(${s.id})">Clear Attend</button>
+                <button class="btn-delete" onclick="deleteSession(${s.id})">Delete</button>
+            </td>
+        </tr>
+        <tr id="att_row_${s.id}" style="display:${isOpen?'table-row':'none'};">
+            <td colspan="7">
+                <div id="att_${s.id}" class="att-sub">Loading…</div>
+            </td>
+        </tr>`;
+    }
+    html += `</tbody></table></div>`;
+    el.innerHTML = html;
 
-  let sessions
-  try{
-    let r = await fetch("/api/get_sessions")
-    let text = await r.text()
-    console.log("get_sessions raw response:", text)
-
-    sessions = JSON.parse(text)
-  } catch(err){
-    container.innerHTML = `<p class="message error">Failed to load sessions: ${err.message}</p>`
-    return
-  }
-
-  if(!Array.isArray(sessions) || sessions.length === 0){
-    container.innerHTML = "<p>No sessions found.</p>"
-    return
-  }
-
-  let html = `<table>
-    <tr>
-      <th>ID</th><th>Session</th><th>Teacher</th>
-      <th>Date</th><th>Start</th><th>End</th><th>Actions</th>
-    </tr>`
-
-  sessions.forEach(s => {
-    let dateDisplay = s.date && s.date !== "null" && s.date !== "0000-00-00"
-      ? escHtml(s.date)
-      : "<i style='color:#aaa'>—</i>"
-
-    html += `<tr>
-      <td>${s.id}</td>
-      <td>${escHtml(s.session)}</td>
-      <td>${escHtml(s.teacher)}</td>
-      <td>${dateDisplay}</td>
-      <td>${escHtml(s.start)}</td>
-      <td>${escHtml(s.end)}</td>
-      <td>
-        <button class="btn-view" onclick="toggleAttendance(${s.id}, this)">
-          &#128065; View Attendance
-        </button>
-        <button class="btn-delete" onclick="deleteAttendance(${s.id})">
-          &#128465; Clear Attendance
-        </button>
-        <button class="btn-delete" style="margin-top:4px" onclick="deleteSession(${s.id})">
-          &#10006; Delete Session
-        </button>
-      </td>
-    </tr>
-    <tr id="att_row_${s.id}" style="display:none">
-      <td colspan="7">
-        <div id="att_${s.id}">Loading…</div>
-      </td>
-    </tr>`
-  })
-
-  html += "</table>"
-  container.innerHTML = html
+    for (const sid of openAttendanceSessions) await loadFullAttendanceRoster(sid);
 }
 
-
-/* ===================== TOGGLE SESSION ATTENDANCE ===================== */
-
-async function toggleAttendance(id, btn){
-  let row = document.getElementById("att_row_" + id)
-
-  if(row.style.display === "none"){
-    row.style.display = ""
-    btn.innerText = "▲ Hide Attendance"
-    await viewAttendance(id)
-  } else {
-    row.style.display = "none"
-    btn.innerText = "👁 View Attendance"
-  }
+async function toggleAttendanceList(sid, btn) {
+    const row = document.getElementById(`att_row_${sid}`);
+    if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        btn.textContent = 'Hide';
+        openAttendanceSessions.add(sid);
+        await loadFullAttendanceRoster(sid);
+    } else {
+        row.style.display = 'none';
+        btn.textContent = 'View/Manage';
+        openAttendanceSessions.delete(sid);
+    }
 }
 
-async function viewAttendance(id){
-  let r    = await fetch(`/api/session_attendance?session_id=${id}`)
-  let data = await r.json()
+async function loadFullAttendanceRoster(sessionId) {
+    const div = document.getElementById(`att_${sessionId}`);
+    div.innerHTML = "<div class='message info'>Loading…</div>";
+    try {
+        const [studRes, attRes] = await Promise.all([
+            fetch('/api/get_all_students'),
+            fetch(`/api/session_attendance?session_id=${sessionId}`)
+        ]);
+        const allStudents = await studRes.json();
+        const existing    = await attRes.json();
+        const presentSet  = new Set(existing.map(r => r.prn));
 
-  if(data.length === 0){
-    document.getElementById("att_"+id).innerHTML = "<i>No attendance records yet.</i>"
-    return
-  }
+        if (!allStudents.length) {
+            div.innerHTML = "<div class='message info'>No registered students.</div>"; return;
+        }
 
-  let html = `<table class="att-sub">
-    <tr><th>PRN</th><th>Name</th><th>Marked At</th><th>Device IP</th></tr>`
+        const presentCount = allStudents.filter(s => presentSet.has(s.prn)).length;
+        const pct = Math.round(presentCount / allStudents.length * 100);
 
-  data.forEach(a => {
-    html += `<tr>
-      <td>${escHtml(a.prn)}</td>
-      <td>${escHtml(a.name)}</td>
-      <td>${escHtml(a.marked_at)}</td>
-      <td>${escHtml(a.device_ip)}</td>
-    </tr>`
-  })
-
-  html += "</table>"
-  document.getElementById("att_"+id).innerHTML = html
+        let html = `<div style="padding:12px 14px 6px;font-size:13px;color:#475569;">
+            <strong>${presentCount}</strong> of <strong>${allStudents.length}</strong> students present
+            &nbsp;·&nbsp; <strong>${pct}%</strong> attendance
+        </div>
+        <table>
+            <thead><tr>
+                <th>PRN</th><th>Name</th><th>Email</th>
+                <th>Status</th><th>Action</th>
+            </tr></thead><tbody>`;
+        for (const s of allStudents) {
+            const present = presentSet.has(s.prn);
+            html += `<tr>
+                <td>${escHtml(s.prn)}</td>
+                <td>${escHtml(s.name)}</td>
+                <td>${escHtml(s.email)}</td>
+                <td><span class="status-badge ${present?'status-present':'status-absent'}">
+                    ${present?'Present':'Absent'}
+                </span></td>
+                <td>${present
+                    ? `<button class="btn-mark btn-mark-absent"
+                           onclick="markAbsent(${sessionId},'${escHtml(s.prn)}','${escHtml(s.name)}')">
+                           Mark Absent</button>`
+                    : `<button class="btn-mark btn-mark-present"
+                           onclick="markPresent(${sessionId},'${escHtml(s.prn)}','${escHtml(s.name)}')">
+                           Mark Present</button>`
+                }</td>
+            </tr>`;
+        }
+        html += `</tbody></table>`;
+        div.innerHTML = html;
+    } catch(e) {
+        div.innerHTML = `<div class='message error'>Error: ${e.message}</div>`;
+    }
 }
 
-
-/* ===================== DELETE ATTENDANCE (for a session) ===================== */
-
-async function deleteAttendance(session_id){
-  if(!confirm(`Clear ALL attendance records for session #${session_id}?`)) return
-
-  let r   = await fetch("/api/delete_attendance",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`session_id=${session_id}`
-  })
-  let res = await r.json()
-
-  alert(res.message)
-  loadSessions()
-  loadDashboard()
+async function markPresent(sid, prn, name) {
+    showLoading(`Marking ${name} present…`);
+    try {
+        const r = await fetch('/api/teacher_mark_attendance', {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body: `session_id=${sid}&prn=${encodeURIComponent(prn)}`
+        });
+        const res = await r.json();
+        hideLoading();
+        if (res.success) { await loadFullAttendanceRoster(sid); showToast(`${name} marked present`); }
+        else showToast(`Error: ${res.message}`, false);
+    } catch(e) { hideLoading(); showToast(e.message, false); }
 }
 
-
-/* ===================== DELETE SESSION ===================== */
-
-async function deleteSession(session_id){
-  if(!confirm(`Delete session #${session_id} AND all its attendance records?`)) return
-
-  let r   = await fetch("/api/delete_session",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`session_id=${session_id}`
-  })
-  let res = await r.json()
-
-  alert(res.message)
-  loadSessions()
-  loadDashboard()
+async function markAbsent(sid, prn, name) {
+    showLoading(`Marking ${name} absent…`);
+    try {
+        const r = await fetch('/api/remove_attendance_record', {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body: `session_id=${sid}&prn=${encodeURIComponent(prn)}`
+        });
+        const res = await r.json();
+        hideLoading();
+        if (res.success) { await loadFullAttendanceRoster(sid); showToast(`${name} marked absent`); }
+        else showToast(`Error: ${res.message}`, false);
+    } catch(e) { hideLoading(); showToast(e.message, false); }
 }
 
-
-/* ===================== SEARCH ATTENDANCE ===================== */
-
-async function searchAttendance(){
-  let prn = document.getElementById("searchPrn").value.trim()
-  if(!prn){ alert("Please enter a PRN."); return }
-
-  let r    = await fetch(`/api/search_attendance?prn=${encodeURIComponent(prn)}`)
-  let data = await r.json()
-
-  if(data.length === 0){
-    document.getElementById("attendanceResults").innerHTML =
-      "<p class='message info'>No attendance records found for this PRN.</p>"
-    return
-  }
-
-  let html = `<table>
-    <tr><th>Session</th><th>Teacher</th><th>Marked At</th></tr>`
-
-  data.forEach(a => {
-    html += `<tr>
-      <td>${escHtml(a.session_name)}</td>
-      <td>${escHtml(a.teacher_name)}</td>
-      <td>${escHtml(a.marked_at)}</td>
-    </tr>`
-  })
-
-  html += "</table>"
-  document.getElementById("attendanceResults").innerHTML = html
+async function deleteAttendance(sid) {
+    if (!confirm(`Clear all attendance records for session #${sid}?`)) return;
+    const r = await fetch('/api/delete_attendance', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `session_id=${sid}`
+    });
+    const res = await r.json();
+    showToast(res.message, res.success);
+    if (openAttendanceSessions.has(sid)) await loadFullAttendanceRoster(sid);
+    await loadDashboard();
 }
 
-
-/* ===================== DASHBOARD ===================== */
-
-async function loadDashboard(){
-  try{
-    let r = await fetch("/api/dashboard_stats")
-    let s = await r.json()
-    document.getElementById("statStudents").innerText   = s.total_students
-    document.getElementById("statSessions").innerText   = s.total_sessions
-    document.getElementById("statAttendance").innerText = s.total_attendance
-  } catch(e){
-    console.error("Dashboard stats error:", e)
-  }
-
-  /* Also populate the sessions preview on the dashboard */
-  await loadDashboardSessions()
+async function deleteSession(sid) {
+    if (!confirm(`Permanently delete session #${sid} and all its attendance records?`)) return;
+    const r = await fetch('/api/delete_session', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `session_id=${sid}`
+    });
+    const res = await r.json();
+    showToast(res.message, res.success);
+    openAttendanceSessions.delete(sid);
+    await loadSessions();
+    await loadDashboard();
 }
 
-async function loadDashboardSessions(){
-  let container = document.getElementById("dashboardSessions")
+/* ══════════════════════════════════════════════════════════════════════════
+   Search attendance — shows overall stats + detailed table
+   Fetches:
+     1. attended sessions for this PRN  (/api/search_attendance)
+     2. all sessions                    (/api/get_sessions)
+   Then computes present / absent / percentage and renders a summary card.
+══════════════════════════════════════════════════════════════════════════ */
+async function searchAttendance() {
+    const prn = document.getElementById('searchPrn').value.trim();
+    if (!prn) { alert('Please enter a PRN.'); return; }
 
-  let sessions
-  try{
-    let r    = await fetch("/api/get_sessions")
-    let text = await r.text()
-    sessions = JSON.parse(text)
-  } catch(err){
-    container.innerHTML = `<p class="message error">Could not load sessions: ${err.message}</p>`
-    return
-  }
+    const summaryEl = document.getElementById('attendanceSummary');
+    const resultsEl = document.getElementById('attendanceResults');
+    summaryEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+    resultsEl.innerHTML = "<div class='message info'>Searching…</div>";
 
-  if(!Array.isArray(sessions) || sessions.length === 0){
-    container.innerHTML = "<p style='color:#888'>No sessions created yet.</p>"
-    return
-  }
+    let attended = [], allSessions = [];
+    try {
+        const [attRes, sessRes] = await Promise.all([
+            fetch(`/api/search_attendance?prn=${encodeURIComponent(prn)}`),
+            fetch('/api/get_sessions')
+        ]);
+        attended    = await attRes.json();
+        allSessions = await sessRes.json();
+    } catch(e) {
+        resultsEl.innerHTML = `<div class='message error'>Network error: ${e.message}</div>`;
+        return;
+    }
 
-  let html = `<table>
-    <tr>
-      <th>ID</th><th>Session Name</th><th>Teacher</th>
-      <th>Date</th><th>Start</th><th>End</th><th></th>
-    </tr>`
+    const totalSessions = allSessions.length;
+    const totalAttended = attended.length;
+    const totalAbsent   = Math.max(0, totalSessions - totalAttended);
+    const pct = totalSessions > 0 ? Math.round(totalAttended / totalSessions * 100) : 0;
 
-  sessions.forEach(s => {
-    let dateDisplay = s.date && s.date !== "null" && s.date !== "0000-00-00"
-      ? escHtml(s.date) : "<i style='color:#aaa'>—</i>"
+    /* Colour thresholds: green ≥75%, amber ≥50%, red <50% */
+    const pctClass  = pct >= 75 ? ''      : pct >= 50 ? 'warn' : 'danger';
+    const pctColour = pct >= 75 ? 'green' : pct >= 50 ? 'orange' : 'red';
 
-    html += `<tr>
-      <td>${s.id}</td>
-      <td>${escHtml(s.session)}</td>
-      <td>${escHtml(s.teacher)}</td>
-      <td>${dateDisplay}</td>
-      <td>${escHtml(s.start)}</td>
-      <td>${escHtml(s.end)}</td>
-      <td>
-        <button class="btn-goto"
-          onclick="switchTab('sessions'); loadSessions()">
-          Open &rarr;
-        </button>
-      </td>
-    </tr>`
-  })
+    /* ── Summary card ── */
+    summaryEl.style.display = 'block';
+    summaryEl.innerHTML = `
+      <div class="att-summary">
+        <div class="att-summary-item">
+          <div class="att-summary-num blue">${escHtml(prn)}</div>
+          <div class="att-summary-label">PRN</div>
+        </div>
+        <div class="att-summary-item">
+          <div class="att-summary-num blue">${totalSessions}</div>
+          <div class="att-summary-label">Total Sessions</div>
+        </div>
+        <div class="att-summary-item">
+          <div class="att-summary-num green">${totalAttended}</div>
+          <div class="att-summary-label">Present</div>
+        </div>
+        <div class="att-summary-item">
+          <div class="att-summary-num red">${totalAbsent}</div>
+          <div class="att-summary-label">Absent</div>
+        </div>
+        <div class="att-summary-item" style="flex:2;min-width:180px;">
+          <div class="att-summary-num ${pctColour}">${pct}%</div>
+          <div class="att-summary-label">Attendance</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill ${pctClass}" style="width:${pct}%"></div>
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+            ${pct >= 75 ? 'Good standing' : pct >= 50 ? 'Below recommended (75%)' : 'Critical — attendance very low'}
+          </div>
+        </div>
+      </div>`;
 
-  html += "</table>"
-  container.innerHTML = html
+    /* ── Detailed records table ── */
+    if (!attended.length) {
+        resultsEl.innerHTML = `<div class='message info'>No attendance records found for PRN <strong>${escHtml(prn)}</strong>. This student has not marked attendance in any session.</div>`;
+        return;
+    }
+
+    /* Build a set of attended session names for quick lookup */
+    let html = `<div class="table-wrapper"><table>
+        <thead><tr>
+            <th>Session</th><th>Teacher</th><th>Date</th><th>Marked At</th>
+        </tr></thead><tbody>`;
+    attended.forEach(a => {
+        const dateDisplay = (a.session_date && a.session_date !== '0000-00-00') ? escHtml(a.session_date) : '—';
+        html += `<tr>
+            <td>${escHtml(a.session_name)}</td>
+            <td>${escHtml(a.teacher_name)}</td>
+            <td>${dateDisplay}</td>
+            <td>${escHtml(a.marked_at)}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    resultsEl.innerHTML = html;
 }
 
-async function getServerIp(){
-  let r = await fetch("/api/get_server_ip")
-  let d = await r.json()
-  document.getElementById("serverIp").innerText =
-    `http://${d.ip}:8080/student?session_id=<SESSION_ID>`
+/* ══════════════════════════════════════════════════════════════════════════
+   Dashboard
+══════════════════════════════════════════════════════════════════════════ */
+async function loadDashboard() {
+    try {
+        const r = await fetch('/api/dashboard_stats');
+        const s = await r.json();
+        document.getElementById('statStudents').textContent   = s.total_students  || 0;
+        document.getElementById('statSessions').textContent   = s.total_sessions  || 0;
+        document.getElementById('statAttendance').textContent = s.total_attendance || 0;
+    } catch(e) {}
+
+    const cont = document.getElementById('dashboardSessions');
+    try {
+        const r = await fetch('/api/get_sessions');
+        const sessions = await r.json();
+        if (!sessions.length) {
+            cont.innerHTML = "<div class='message info'>No sessions yet.</div>"; return;
+        }
+        let html = `<table>
+            <thead><tr><th>ID</th><th>Session</th><th>Teacher</th><th>Date</th><th>Time</th></tr></thead>
+            <tbody>`;
+        sessions.slice(0,5).forEach(s => {
+            const d = (s.date && s.date !== 'null') ? escHtml(s.date) : '—';
+            html += `<tr>
+                <td>${s.id}</td><td>${escHtml(s.session)}</td>
+                <td>${escHtml(s.teacher)}</td><td>${d}</td>
+                <td>${escHtml(s.start)} – ${escHtml(s.end)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+        cont.innerHTML = `<div class="table-wrapper">${html}</div>`;
+    } catch(e) {
+        cont.innerHTML = "<div class='message error'>Could not load sessions.</div>";
+    }
 }
 
-
-/* ===================== XSS PROTECTION ===================== */
-
-function escHtml(str){
-  if(str === null || str === undefined) return ""
-  return String(str)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-}
-
-
-/* ===================== INIT ===================== */
-
-window.onload = function(){
-  loadDashboard()       /* loads stats + sessions preview */
-  getServerIp()
-  loadSessions()        /* pre-load sessions tab so it's ready instantly */
-  /* Default session date to today */
-  const today = new Date().toISOString().split("T")[0]
-  document.getElementById("sessdate").value = today
-}
-
+/* ══════════════════════════════════════════════════════════════════════════
+   Init
+══════════════════════════════════════════════════════════════════════════ */
+window.onload = function() {
+    startAutoRefresh();
+    loadDashboard();
+    document.getElementById('sessdate').value = new Date().toISOString().split('T')[0];
+};
 </script>
 </body>
 </html>
